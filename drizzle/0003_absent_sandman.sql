@@ -1,0 +1,70 @@
+CREATE TABLE `import_batches` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`financial_account_id` integer NOT NULL,
+	`source_filename` text NOT NULL,
+	`file_checksum` text NOT NULL,
+	`csv_schema_version` text NOT NULL,
+	`currency` text NOT NULL,
+	`statement_start_date` text NOT NULL,
+	`statement_end_date` text NOT NULL,
+	`opening_balance_minor` integer NOT NULL,
+	`closing_balance_minor` integer NOT NULL,
+	`row_count` integer NOT NULL,
+	`warning_count` integer NOT NULL,
+	`validation_status` text NOT NULL,
+	`review_status` text NOT NULL,
+	`imported_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	FOREIGN KEY (`financial_account_id`) REFERENCES `financial_accounts`(`id`) ON UPDATE no action ON DELETE restrict,
+	CONSTRAINT "import_batches_source_filename_not_blank" CHECK(length(trim("import_batches"."source_filename")) > 0),
+	CONSTRAINT "import_batches_checksum_length" CHECK(length("import_batches"."file_checksum") = 64),
+	CONSTRAINT "import_batches_schema_version" CHECK("import_batches"."csv_schema_version" = 'csv-v1'),
+	CONSTRAINT "import_batches_currency_length" CHECK(length("import_batches"."currency") = 3),
+	CONSTRAINT "import_batches_statement_start_date" CHECK("import_batches"."statement_start_date" GLOB '????-??-??'),
+	CONSTRAINT "import_batches_statement_end_date" CHECK("import_batches"."statement_end_date" GLOB '????-??-??'),
+	CONSTRAINT "import_batches_statement_date_order" CHECK("import_batches"."statement_start_date" <= "import_batches"."statement_end_date"),
+	CONSTRAINT "import_batches_row_count" CHECK("import_batches"."row_count" > 0),
+	CONSTRAINT "import_batches_warning_count" CHECK("import_batches"."warning_count" >= 0),
+	CONSTRAINT "import_batches_validation_status" CHECK("import_batches"."validation_status" = 'validated'),
+	CONSTRAINT "import_batches_review_status" CHECK("import_batches"."review_status" IN ('pending', 'in_review', 'finalized'))
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `import_batches_file_checksum_unique` ON `import_batches` (`file_checksum`);--> statement-breakpoint
+CREATE INDEX `import_batches_account_statement_index` ON `import_batches` (`financial_account_id`,`statement_end_date`);--> statement-breakpoint
+CREATE TABLE `import_rows` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`import_batch_id` integer NOT NULL,
+	`original_row_number` integer NOT NULL,
+	`transaction_date` text NOT NULL,
+	`posted_date` text,
+	`description` text NOT NULL,
+	`amount_minor` integer NOT NULL,
+	`currency` text NOT NULL,
+	`external_id` text,
+	`merchant` text,
+	`suggested_type` text,
+	`suggested_category` text,
+	`suggested_category_id` integer,
+	`notes` text,
+	`default_effective_date` text NOT NULL,
+	`normalized_fingerprint` text NOT NULL,
+	`validation_status` text NOT NULL,
+	`review_status` text NOT NULL,
+	`warnings_json` text NOT NULL,
+	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	FOREIGN KEY (`import_batch_id`) REFERENCES `import_batches`(`id`) ON UPDATE no action ON DELETE restrict,
+	FOREIGN KEY (`suggested_category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE restrict,
+	CONSTRAINT "import_rows_original_row_number" CHECK("import_rows"."original_row_number" >= 2),
+	CONSTRAINT "import_rows_transaction_date" CHECK("import_rows"."transaction_date" GLOB '????-??-??'),
+	CONSTRAINT "import_rows_posted_date" CHECK("import_rows"."posted_date" IS NULL OR "import_rows"."posted_date" GLOB '????-??-??'),
+	CONSTRAINT "import_rows_default_effective_date" CHECK("import_rows"."default_effective_date" GLOB '????-??-??'),
+	CONSTRAINT "import_rows_description_not_blank" CHECK(length(trim("import_rows"."description")) > 0),
+	CONSTRAINT "import_rows_currency_length" CHECK(length("import_rows"."currency") = 3),
+	CONSTRAINT "import_rows_suggested_type" CHECK("import_rows"."suggested_type" IS NULL OR "import_rows"."suggested_type" IN ('income', 'expense', 'transfer', 'refund', 'adjustment')),
+	CONSTRAINT "import_rows_fingerprint_length" CHECK(length("import_rows"."normalized_fingerprint") = 64),
+	CONSTRAINT "import_rows_validation_status" CHECK("import_rows"."validation_status" IN ('valid', 'valid_with_warnings')),
+	CONSTRAINT "import_rows_review_status" CHECK("import_rows"."review_status" = 'unresolved')
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `import_rows_batch_row_unique` ON `import_rows` (`import_batch_id`,`original_row_number`);--> statement-breakpoint
+CREATE INDEX `import_rows_external_id_index` ON `import_rows` (`external_id`);--> statement-breakpoint
+CREATE INDEX `import_rows_fingerprint_index` ON `import_rows` (`normalized_fingerprint`);

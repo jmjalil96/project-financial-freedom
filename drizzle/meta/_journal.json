@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1786994585162,
+      "tag": "0000_far_maelstrom",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1786997672371,
+      "tag": "0001_dark_lester",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786997677055,
+      "tag": "0002_ledger_invariants",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787001303261,
+      "tag": "0003_absent_sandman",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1787001303671,
+      "tag": "0004_import_immutability",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787003953083,
+      "tag": "0005_data_safety_invariants",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1787007454369,
+      "tag": "0006_currency_delete_invariant",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1787013734239,
+      "tag": "0007_illegal_princess_powerful",
+      "breakpoints": true
+    }
+  ]
+}

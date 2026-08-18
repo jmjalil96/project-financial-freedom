@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Tests and tooling
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Local configuration
+.env
+.env.local
+.env.*.local
+
+# Local financial data
+.local-data/
+.e2e-data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
+
+# macOS
+.DS_Store

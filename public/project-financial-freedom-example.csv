@@ -1,0 +1,4 @@
+transaction_date,posted_date,description,amount,currency,external_id,merchant,type,category,notes
+2026-08-01,2026-08-01,PAYROLL ACME INC,3000.00,USD,CHK-1001,Acme Inc,income,Salary,
+2026-08-04,2026-08-05,WHOLE FOODS 102,-82.45,USD,CHK-1002,Whole Foods,expense,Groceries,
+2026-08-10,2026-08-10,ONLINE PAYMENT VISA,-500.00,USD,CHK-1003,Visa,transfer,,
