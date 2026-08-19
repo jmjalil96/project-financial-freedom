@@ -15,6 +15,11 @@ const systemLedgerAccounts = [
     systemKey: "transfer_clearing",
   },
   {
+    name: "Outside-scope transfers",
+    kind: "clearing",
+    systemKey: "outside_scope_transfers",
+  },
+  {
     name: "Manual adjustments",
     kind: "equity",
     systemKey: "manual_adjustments",

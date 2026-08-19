@@ -6,7 +6,7 @@ The product goal is documented in [PRODUCT.md](PRODUCT.md), and implementation p
 
 ## Current Status
 
-Phases 1 through 3 provide:
+Phases 1 through 5 provide:
 
 - A local-only Next.js application bound to `127.0.0.1` with a loopback Host allowlist.
 - Base-currency onboarding that freezes once financial data exists.
@@ -23,8 +23,24 @@ Phases 1 through 3 provide:
 - Complete in-memory previews with statement-balance warnings and exact-file detection.
 - Preview-bound, atomic source-row imports with immutable provenance and paginated history.
 - Downloadable CSV resources and a copyable prompt for external AI preparation.
+- Immutable review decisions with `accepted`, `excluded`, and `duplicate` dispositions.
+- Positive category-allocation magnitudes with exact split and refund rules.
+- Deterministic duplicate candidates that never delete source evidence automatically.
+- Source, provisional, and accepted reconciliation totals with exact-zero finalization.
+- Locked finalized review decisions that cannot be edited or reopened.
+- Atomic import-to-ledger posting with one traceable journal entry per accepted row.
+- Imported income, expense, refund, split, transfer, and adjustment counterpostings.
+- Transfer-clearing visibility, a separate owned-but-untracked balance, explicit
+  external and in-transit classifications, and confirmed owned-account or card-payment
+  matches.
+- Actual-interval statement coverage with overlap merging, exact gaps, irregular
+  cycles, account active dates, and optional month-close participation.
+- A coverage workspace and imported-ledger links that retain effective, posted, and
+  statement dates for their distinct purposes.
 
-Imported rows remain unresolved source evidence and do not create ledger postings. Transaction review, duplicate decisions, and statement reconciliation begin in Phase 4.
+Finalizing a reviewed statement now seals its evidence and posts every accepted row in
+the same database transaction. Older Phase 4-only finalized statements can be posted
+once through the finalization receipt without reopening their locked decisions.
 
 ## Run Locally
 

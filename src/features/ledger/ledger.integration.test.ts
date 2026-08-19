@@ -85,11 +85,12 @@ describe("Phase 2 ledger foundation", () => {
     expect(systemAccounts.map((account) => account.system_key)).toEqual([
       "manual_adjustments",
       "opening_equity",
+      "outside_scope_transfers",
       "transfer_clearing",
     ]);
     expect(categoryCount.count).toBe(15);
     expect(categoryLedgerCount.count).toBe(15);
-    expect(context.health.appliedMigrations).toBe(8);
+    expect(context.health.appliedMigrations).toBe(14);
   });
 
   it("creates asset and liability opening positions without income or expense", async () => {
@@ -761,7 +762,10 @@ describe("Phase 2 ledger foundation", () => {
       requiredForClose: true,
     });
 
-    await archiveFinancialAccount(zeroBalanceId);
+    await expect(archiveFinancialAccount(zeroBalanceId, "2026-07-31")).rejects.toThrow(
+      "before its opening date",
+    );
+    await archiveFinancialAccount(zeroBalanceId, "2026-08-10");
     await expect(archiveFinancialAccount(fundedId)).rejects.toThrow(
       "Bring the account balance to zero",
     );
@@ -771,6 +775,9 @@ describe("Phase 2 ledger foundation", () => {
     expect(
       accounts.find((account) => account.id === zeroBalanceId)?.archivedAt,
     ).not.toBeNull();
+    expect(accounts.find((account) => account.id === zeroBalanceId)?.archivedOn).toBe(
+      "2026-08-10",
+    );
     expect(accounts.find((account) => account.id === fundedId)?.archivedAt).toBeNull();
   });
 });

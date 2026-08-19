@@ -1,5 +1,6 @@
 import { BookOpenCheck, CircleSlash2 } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { Pagination } from "@/components/pagination";
 import { formatCalendarDate } from "@/domain/calendar-date";
@@ -42,6 +43,18 @@ function EntryCard({
           </div>
           <h3>{entry.description}</h3>
           {entry.notes ? <p>{entry.notes}</p> : null}
+          {entry.importSource ? (
+            <p className="entry-card__source">
+              <Link href={`/imports/${entry.importSource.importBatchId}/review`}>
+                Import #{entry.importSource.importBatchId} · source row{" "}
+                {entry.importSource.originalRowNumber}
+              </Link>
+              {entry.importSource.postedDate
+                ? ` · posted ${formatCalendarDate(entry.importSource.postedDate)}`
+                : " · no posted date supplied"}
+              {` · ${entry.importSource.sourceFilename}`}
+            </p>
+          ) : null}
         </div>
         <span className="entry-number">#{entry.id}</span>
       </div>

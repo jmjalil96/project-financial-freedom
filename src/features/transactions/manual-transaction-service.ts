@@ -4,6 +4,10 @@ import { getDatabaseContext } from "@/db/client";
 import {
   categories,
   financialAccounts,
+  importBatches,
+  importRowJournalEntries,
+  importRows,
+  importTransferResolutions,
   journalEntries,
   ledgerAccounts,
   postings,
@@ -230,6 +234,13 @@ export type JournalEntryListItem = {
   notes: string | null;
   reversesEntryId: number | null;
   reversedByEntryId: number | null;
+  importSource: {
+    importRowId: number;
+    importBatchId: number;
+    originalRowNumber: number;
+    postedDate: string | null;
+    sourceFilename: string;
+  } | null;
   postings: Array<{
     id: number;
     amountMinor: number;
@@ -299,10 +310,63 @@ export async function listRecentJournalEntries(
   const reversalMap = new Map(
     reversalRows.map((entry) => [entry.reversesEntryId!, entry.id]),
   );
+  const importSourceRows = db
+    .select({
+      journalEntryId: importRowJournalEntries.journalEntryId,
+      importRowId: importRows.id,
+      importBatchId: importBatches.id,
+      originalRowNumber: importRows.originalRowNumber,
+      postedDate: importRows.postedDate,
+      sourceFilename: importBatches.sourceFilename,
+    })
+    .from(importRowJournalEntries)
+    .innerJoin(importRows, eq(importRows.id, importRowJournalEntries.importRowId))
+    .innerJoin(importBatches, eq(importBatches.id, importRows.importBatchId))
+    .where(inArray(importRowJournalEntries.journalEntryId, entryIds))
+    .all();
+  const importSourceByEntryId = new Map(
+    importSourceRows.map(({ journalEntryId, ...source }) => [journalEntryId, source]),
+  );
+  const sourceLookupEntryIds = [
+    ...entryIds,
+    ...entries.flatMap((entry) =>
+      entry.reversesEntryId === null ? [] : [entry.reversesEntryId],
+    ),
+  ];
+  const transferSourceRows = db
+    .select({
+      journalEntryId: importTransferResolutions.reclassificationJournalEntryId,
+      importRowId: importRows.id,
+      importBatchId: importBatches.id,
+      originalRowNumber: importRows.originalRowNumber,
+      postedDate: importRows.postedDate,
+      sourceFilename: importBatches.sourceFilename,
+    })
+    .from(importTransferResolutions)
+    .innerJoin(importRows, eq(importRows.id, importTransferResolutions.importRowId))
+    .innerJoin(importBatches, eq(importBatches.id, importRows.importBatchId))
+    .where(
+      inArray(
+        importTransferResolutions.reclassificationJournalEntryId,
+        sourceLookupEntryIds,
+      ),
+    )
+    .all();
+  const transferSourceByEntryId = new Map(
+    transferSourceRows.flatMap(({ journalEntryId, ...source }) =>
+      journalEntryId === null ? [] : [[journalEntryId, source] as const],
+    ),
+  );
 
   return entries.map((entry) => ({
     ...entry,
     reversedByEntryId: reversalMap.get(entry.id) ?? null,
+    importSource:
+      importSourceByEntryId.get(entry.id) ??
+      transferSourceByEntryId.get(entry.id) ??
+      (entry.reversesEntryId === null
+        ? null
+        : (transferSourceByEntryId.get(entry.reversesEntryId) ?? null)),
     postings: postingRows
       .filter((posting) => posting.journalEntryId === entry.id)
       .map((posting) => ({

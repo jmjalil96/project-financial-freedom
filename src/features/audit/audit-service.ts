@@ -11,6 +11,12 @@ export type AuditAction =
   | "category.archived"
   | "category.restored"
   | "import.committed"
+  | "import.batch_posted"
+  | "review.row_decision_saved"
+  | "review.duplicate_candidate_dismissed"
+  | "transfer.resolution_saved"
+  | "transfer.match_confirmed"
+  | "review.batch_finalized"
   | "journal.posted"
   | "journal.reversed";
 
@@ -23,6 +29,8 @@ export function recordAuditEvent(
       | "financial_account"
       | "category"
       | "import_batch"
+      | "import_row"
+      | "duplicate_candidate"
       | "journal_entry";
     entityId: number;
     details: Record<string, unknown>;

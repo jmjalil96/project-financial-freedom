@@ -6,7 +6,7 @@ import {
   isLiabilityAccount,
   toNaturalBalance,
 } from "@/domain/accounts";
-import { formatCalendarDate } from "@/domain/calendar-date";
+import { formatCalendarDate, getLocalCalendarDate } from "@/domain/calendar-date";
 import { formatMoney, sumMinorUnits } from "@/domain/money";
 import { AccountForm } from "@/features/accounts/account-form";
 import {
@@ -24,9 +24,11 @@ export const metadata: Metadata = {
 function AccountCard({
   account,
   archived = false,
+  today,
 }: {
   account: FinancialAccount;
   archived?: boolean;
+  today: string;
 }) {
   const type = getFinancialAccountType(account.type);
   const isLiability = isLiabilityAccount(account.type);
@@ -69,7 +71,9 @@ function AccountCard({
         <ArchiveAccountButton
           accountId={account.id}
           accountName={account.name}
+          defaultArchivedOn={today}
           disabled={account.balanceMinor !== 0}
+          openingDate={account.openingDate}
         />
       ) : (
         <div className="inline-action">
@@ -97,6 +101,7 @@ export default async function AccountsPage() {
     activeAccounts.map((account) => account.balanceMinor),
     "The combined account balance exceeds the safe money range.",
   );
+  const today = getLocalCalendarDate();
 
   return (
     <>
@@ -124,7 +129,7 @@ export default async function AccountsPage() {
           {activeAccounts.length > 0 ? (
             <div className="account-grid">
               {activeAccounts.map((account) => (
-                <AccountCard account={account} key={account.id} />
+                <AccountCard account={account} key={account.id} today={today} />
               ))}
             </div>
           ) : (
@@ -146,7 +151,12 @@ export default async function AccountsPage() {
               </div>
               <div className="account-grid account-grid--archived">
                 {archivedAccounts.map((account) => (
-                  <AccountCard account={account} archived key={account.id} />
+                  <AccountCard
+                    account={account}
+                    archived
+                    key={account.id}
+                    today={today}
+                  />
                 ))}
               </div>
             </section>

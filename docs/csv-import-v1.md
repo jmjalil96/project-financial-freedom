@@ -85,6 +85,7 @@ The signed change to the selected account's contribution to net worth.
 - Do not include thousands separators.
 - Do not use parentheses for negatives.
 - Use no more fractional digits than the currency supports.
+- The amount must not be zero. Rows with no financial activity are not transaction evidence and must be omitted from the CSV.
 
 Examples:
 
@@ -107,7 +108,7 @@ Sign rules:
 - Other-liability debt increase: negative.
 - Other-liability payment, forgiveness, or reduction: positive.
 
-A blank, nonnumeric, or excessively precise value blocks import.
+A blank, zero, nonnumeric, or excessively precise value blocks import.
 
 #### `currency`
 

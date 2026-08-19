@@ -9,6 +9,7 @@ The application is a personal decision tool, not a general-purpose accounting pa
 Related documents:
 
 - [CSV Import v1](csv-import-v1.md)
+- [Transaction Review](transaction-review.md)
 - [Month Close](month-close.md)
 - [External AI Prompt](external-ai-prompt.md)
 - [Test Scenarios](test-scenarios.md)
@@ -19,6 +20,7 @@ The application keeps distinct kinds of information:
 
 - Imported rows are immutable evidence of what a normalized source file contained.
 - Review decisions record how the user interpreted an imported row.
+- Finalized review decisions are locked evidence. They are not ledger entries.
 - Final ledger entries are the source of truth for income, expenses, transfers, and tracked account balances.
 - Statement metadata is the source of truth for reconciliation and account coverage.
 - Manual valuation records are the source of truth for assets and liabilities that are not ledger accounts.
@@ -57,6 +59,8 @@ Financial dates are calendar dates, not instants.
 - Manual transaction: use the date entered by the user.
 - Opening balance: use the account's opening date.
 - A user may correct an effective date during review, but the imported dates remain unchanged.
+- A confirmed effective date cannot precede the account opening date.
+- When the confirmed type changes, recalculate the default from the confirmed type until the user explicitly edits the date.
 
 For an imported credit-card row with no type suggestion, a negative amount is treated
 as a charge for default-date purposes and uses `transaction_date`. A positive untyped
@@ -86,7 +90,8 @@ Internally:
 - Asset balances are positive when value is owned.
 - Liability balances are negative when money is owed.
 - Transfer clearing is a temporary balance-sheet account and contributes to net worth while a confirmed transfer is in transit.
-- Net worth is the sum of asset, liability, and transfer-clearing balances, plus manual asset and liability valuations.
+- Outside-scope transfers use a separate balance-sheet account for value held in owned accounts whose transactions are not tracked in this workspace.
+- Net worth is the sum of asset, liability, transfer-clearing, and outside-scope-transfer balances, plus manual asset and liability valuations.
 
 The interface accepts a credit-card or loan balance as an amount owed: positive when the user owes the institution and negative only when the institution shows a credit balance owed to the user. It negates that amount to obtain the internal signed balance used for reconciliation.
 
@@ -107,7 +112,14 @@ Examples:
 - Loan interest charge: negative.
 - Loan payment applied to the loan balance: positive.
 
-The imported amount becomes the posting to the selected financial account. Counterpostings make the journal entry balance.
+When a reviewed statement is finalized, the imported amount becomes the posting to the
+selected financial account. Counterpostings make the journal entry balance. The Phase 4
+review rules remain the evidence gate; Phase 5 creates the entries and source links in
+the same finalization transaction.
+
+Accepted expenses must have negative source amounts. Accepted income and refunds must
+have positive source amounts. A contradictory type is a review blocker and is also
+rejected by the ledger-posting and database boundaries.
 
 ## Internal Ledger Convention
 
@@ -167,9 +179,20 @@ Examples:
 - Checking to an owned investment cash account.
 - Movement between two tracked cash accounts.
 
-Each source-side transfer row is posted through a transfer-clearing account. Matching opposite legs cancel in clearing. A confirmed in-transit leg may leave a temporary clearing balance, which must remain visible until its matching leg arrives or the classification is corrected.
+Phase 4 may confirm that a row is a transfer. In Phase 5, each source-side transfer row
+is posted through a transfer-clearing account, so statements remain independently
+finalizable. Equal-and-opposite legs in different owned accounts and the same currency
+are suggested within a three-calendar-day window, but a match is never stored without
+confirmation. Matching opposite legs cancel in clearing. A confirmed in-transit leg may
+leave a temporary clearing balance, which remains visible until its matching leg arrives
+or the classification is corrected.
 
-A transfer to or from an untracked account must be explicitly classified as external. It remains excluded from income and expense unless the user determines that the event was actually income or spending.
+An external transfer means a transfer to or from an owned account whose transactions are
+not tracked in this workspace. Once explicitly classified, an immutable system entry
+moves its balance from transfer clearing to the separate outside-scope-transfer account.
+Changing that classification reverses the system entry rather than rewriting it. If
+ownership changed, the row is not an external transfer: it must be reviewed as income,
+expense, refund, or an evidence-backed adjustment.
 
 ### Refund
 
@@ -196,7 +219,11 @@ An adjustment is an exceptional correction supported by known evidence. It requi
 - Uncategorized income or expense blocks month closing.
 - Imported category values are suggestions until confirmed.
 - Categories may be archived but not deleted when used by historical entries.
-- A split transaction may post to multiple categories while retaining one financial-account posting.
+- Phase 4 category allocations are positive minor-unit magnitudes that sum exactly to the absolute imported amount.
+- Income allocations use income categories. Expense and refund allocations use expense categories.
+- A split uses several positive allocations while retaining one immutable imported account amount.
+- In Phase 5, expense allocations become positive expense postings, income allocations become negative income postings, and refund allocations become negative expense postings.
+- Those posting directions come from the confirmed type; the source sign is validated independently rather than used to infer the category sign.
 
 ## Opening Balances
 
@@ -219,7 +246,19 @@ For an asset account, user-entered balances normally remain positive.
 
 For a credit card or loan, an amount owed is converted to a negative signed balance before applying the equation.
 
-Reconciliation uses statement membership and accepted account amounts, not report categories. A statement may reconcile before its review is complete, but finalization also requires all duplicate, exclusion, type, category, split, refund, and transfer decisions required by its rows.
+Phase 4 exposes three traceable activity totals:
+
+- Source activity includes every immutable imported row.
+- Provisional activity excludes rows explicitly marked `excluded` or `duplicate`, but includes unresolved and accepted rows.
+- Accepted activity includes only rows marked `accepted`.
+
+Final reconciliation uses accepted activity. Its difference is the signed closing balance minus the opening signed balance and accepted activity. The difference must equal exactly zero minor units; there is no tolerance or automatic adjustment.
+
+Reconciliation uses statement membership and imported account amounts, not report categories. A statement may reconcile before its review is complete, but review finalization also requires every row disposition and all required exclusion, duplicate, effective-date, type, category, split, refund, and adjustment decisions.
+
+Confirming `transfer` completes the Phase 4 type decision. Phase 5 pairing or unmatched
+classification is a separate, auditable resolution and does not block exact statement
+reconciliation or review finalization.
 
 The application must never infer statement coverage from the first or last transaction date. Coverage comes from the statement start and end dates entered during import.
 
@@ -234,16 +273,19 @@ Property, vehicles, investments tracked only by value, and debts without transac
 - A stale value may be carried forward only with explicit acknowledgment.
 - Valuation changes do not become income or expense automatically.
 - The same financial item must not be tracked both as a ledger account and a manual item.
+- If a later phase introduces a manual valuation for an account previously represented by the outside-scope-transfer balance, that balance must be explicitly settled or linked so the same owned value is not counted twice.
 
 ## Immutability and Corrections
 
 - Imported source fields never change.
 - Review decisions may change until their statement is finalized.
+- Finalized review decisions cannot be edited, deleted, or reopened in Phase 4.
 - Final journal entries are not edited in place.
-- A correction reverses or supersedes the prior financial interpretation while retaining both versions.
+- A ledger correction reverses or supersedes the prior posted financial interpretation while retaining both versions. It does not mutate a finalized review decision.
 - Restore an archived account or category before posting a correction that uses it.
+- An account cannot be archived while it has an imported statement that has not posted to the ledger, and an archived account cannot finalize or post a statement.
 - A reversal entry is not reversed again. If a correction was wrong, post a documented replacement entry so the full correction chain remains explicit.
-- A late event affecting a closed month requires an explicit reopen and new close revision.
+- A late event affecting a closed month requires an explicit month reopen and new close revision. This does not reopen finalized statement review decisions.
 - Previous close revisions remain reproducible.
 - Excluded rows remain visible with their reason.
 - Suspected duplicates are never deleted automatically.
@@ -254,8 +296,9 @@ Property, vehicles, investments tracked only by value, and debts without transac
 - Budgets compare confirmed expense postings to the corresponding effective month.
 - Transfers and opening balances are excluded from income, expense, and savings calculations.
 - Refund postings reduce expense totals in their confirmed category.
-- Net worth uses asset, liability, and transfer-clearing balances plus dated manual valuations.
+- Net worth uses asset, liability, transfer-clearing, and outside-scope-transfer balances plus dated manual valuations.
 - A nonzero transfer-clearing balance must be explained by explicit in-transit transfers.
+- The outside-scope-transfer balance is shown separately and must trace to explicit owned-but-untracked classifications.
 - Provisional months must be labeled as provisional.
 - Every aggregate must be traceable to ledger postings or valuation records and then to its source.
 

@@ -122,6 +122,7 @@ The target month may close only when all of the following are true.
 - Every excluded row has a reason.
 - Every transfer affecting the target month is matched, marked in transit, or explicitly classified as external.
 - Any nonzero transfer-clearing balance is fully explained by transfers explicitly marked in transit.
+- Any outside-scope-transfer balance is shown separately and fully explained by transfers to or from owned accounts not tracked in the workspace.
 - Every split, refund, fee, interest charge, and adjustment is resolved.
 - No unexplained balancing entry exists.
 
@@ -150,6 +151,7 @@ Before confirmation, the application presents:
 - Income and expense totals.
 - Transfer totals excluded from reports.
 - Any transfer-clearing balance and its in-transit transactions.
+- The outside-scope-transfer balance and its owned-but-untracked source rows.
 - Budget status.
 - Manual valuation dates and stale-value acknowledgments.
 - Provisional net worth.
@@ -200,6 +202,7 @@ If the new row is a duplicate of already accepted activity, resolving it as a du
 
 ### Archived Account
 
+- Finalize and post every imported statement before archiving the account.
 - Require coverage through its final active date.
 - Preserve all historical balances and reports.
 - Do not require later coverage.

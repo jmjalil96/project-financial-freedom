@@ -1,0 +1,11 @@
+transaction_date,posted_date,description,amount,currency,external_id,merchant,type,category,notes
+2026-08-01,2026-08-01,PAYROLL ACME INC,3000.00,USD,MOCK-CHK-1001,Acme Inc,income,Salary,
+2026-08-02,2026-08-03,LANDLORD RENT PAYMENT,-1200.00,USD,MOCK-CHK-1002,Sample Property Management,expense,Housing,
+2026-08-04,2026-08-05,WHOLE FOODS 102,-82.45,USD,MOCK-CHK-1003,Whole Foods,expense,Groceries,
+2026-08-06,2026-08-06,COFFEE SHOP DOWNTOWN,-4.50,USD,MOCK-CHK-1004,Downtown Coffee,expense,Dining,Canonical coffee purchase
+2026-08-06,2026-08-06,COFFEE SHOP DOWNTOWN,-4.50,USD,MOCK-CHK-1004,Downtown Coffee,expense,Dining,Intentional duplicate for review testing
+2026-08-10,2026-08-10,ONLINE PAYMENT VISA,-500.00,USD,MOCK-CHK-1005,Visa,transfer,,Owned credit-card payment
+2026-08-12,2026-08-13,MERCHANT REFUND,20.00,USD,MOCK-CHK-1006,Whole Foods,refund,Groceries,Refund of a prior grocery expense
+2026-08-15,2026-08-16,ACH DEBIT 839201,-110.00,USD,MOCK-CHK-1007,,,,Purpose intentionally left uncertain
+2026-08-20,2026-08-20,MONTHLY MAINTENANCE FEE,-12.00,USD,MOCK-CHK-1008,Sample Bank,expense,Fees,
+2026-08-24,2026-08-25,ONLINE RETAILER ORDER,-75.00,USD,MOCK-CHK-1009,Sample Retailer,expense,,Split between Shopping and Other expense during review

@@ -55,7 +55,7 @@ describe("initializeDatabase", () => {
       quickCheck: "ok",
       foreignKeys: true,
       journalMode: "wal",
-      appliedMigrations: 8,
+      appliedMigrations: 14,
     });
     expect(statSync(paths.dataDirectory).mode & 0o777).toBe(0o700);
     expect(statSync(paths.databasePath).mode & 0o777).toBe(0o600);
@@ -135,7 +135,7 @@ describe("initializeDatabase", () => {
       .get() as { count: number };
 
     expect(upgradedContext.backupCreated).not.toBeNull();
-    expect(upgradedContext.health.appliedMigrations).toBe(8);
+    expect(upgradedContext.health.appliedMigrations).toBe(14);
     expect(settings.base_currency).toBe("EUR");
     expect(categories.count).toBe(15);
     expect(
@@ -143,6 +143,235 @@ describe("initializeDatabase", () => {
         (file) => file.endsWith("-wal") || file.endsWith("-shm"),
       ),
     ).toEqual([]);
+    upgradedContext.raw.close();
+  });
+
+  it("preserves Phase 4 decisions while aligning their physical checks", async () => {
+    const root = createTemporaryRoot();
+    const paths = createTestPaths(root);
+    const phaseFourMigrations = join(root, "phase-four-migrations");
+    const phaseFourMeta = join(phaseFourMigrations, "meta");
+    const currentJournal = JSON.parse(
+      readFileSync(join(process.cwd(), "drizzle", "meta", "_journal.json"), "utf8"),
+    ) as {
+      version: string;
+      dialect: string;
+      entries: Array<{
+        idx: number;
+        version: string;
+        when: number;
+        tag: string;
+        breakpoints: boolean;
+      }>;
+    };
+    const phaseFourEntries = currentJournal.entries.slice(0, 10);
+
+    mkdirSync(phaseFourMeta, { recursive: true });
+    for (const entry of phaseFourEntries) {
+      cpSync(
+        join(process.cwd(), "drizzle", `${entry.tag}.sql`),
+        join(phaseFourMigrations, `${entry.tag}.sql`),
+      );
+    }
+    writeFileSync(
+      join(phaseFourMeta, "_journal.json"),
+      `${JSON.stringify({ ...currentJournal, entries: phaseFourEntries }, null, 2)}\n`,
+    );
+
+    const phaseFourContext = await initializeDatabase({
+      paths,
+      migrationsFolder: phaseFourMigrations,
+    });
+    expect(phaseFourContext.health.appliedMigrations).toBe(10);
+    phaseFourContext.raw.exec(`
+      INSERT INTO app_settings (id, base_currency) VALUES (1, 'USD');
+      INSERT INTO financial_accounts (
+        name, type, currency, opening_date
+      ) VALUES ('Checking', 'checking', 'USD', '2026-07-01');
+      INSERT INTO categories (
+        name, slug, kind
+      ) VALUES ('Runtime expense', 'runtime-expense', 'expense');
+      INSERT INTO import_batches (
+        financial_account_id, source_filename, file_checksum, csv_schema_version,
+        currency, statement_start_date, statement_end_date,
+        opening_balance_minor, closing_balance_minor, row_count, warning_count,
+        validation_status, review_status, is_sealed
+      ) VALUES (
+        1, 'phase-four.csv',
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        'csv-v1', 'USD', '2026-08-01', '2026-08-31',
+        10000, 9000, 1, 0, 'validated', 'in_review', 0
+      );
+      INSERT INTO import_rows (
+        import_batch_id, original_row_number, transaction_date, description,
+        amount_minor, currency, default_effective_date, normalized_fingerprint,
+        validation_status, review_status, warnings_json
+      ) VALUES (
+        1, 2, '2026-08-04', 'Groceries', -1000, 'USD', '2026-08-04',
+        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        'valid', 'unresolved', '[]'
+      );
+      UPDATE import_batches SET is_sealed = 1 WHERE id = 1;
+      INSERT INTO import_row_decisions (
+        import_row_id, disposition, confirmed_type, effective_date
+      ) VALUES (1, 'accepted', 'expense', '2026-08-04');
+      INSERT INTO import_row_category_allocations (
+        import_row_decision_id, import_row_id, category_id, amount_minor
+      ) VALUES (
+        1, 1, (SELECT id FROM categories WHERE slug = 'runtime-expense'), 1000
+      );
+    `);
+    phaseFourContext.raw.close();
+
+    const upgradedContext = await initializeDatabase({ paths });
+    const decisionTable = upgradedContext.raw
+      .prepare(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'import_row_decisions'",
+      )
+      .get() as { sql: string };
+
+    expect(upgradedContext.backupCreated).not.toBeNull();
+    expect(upgradedContext.health.appliedMigrations).toBe(14);
+    expect(decisionTable.sql).toContain('"exclusion_reason" IS NOT NULL');
+    expect(decisionTable.sql).toContain(
+      `strftime('%Y-%m-%d', "import_row_decisions"."effective_date", '+0 days') IS NOT NULL`,
+    );
+    expect(
+      upgradedContext.raw
+        .prepare(
+          `SELECT decision.disposition, allocation.amount_minor
+           FROM import_row_decisions AS decision
+           INNER JOIN import_row_category_allocations AS allocation
+             ON allocation.import_row_decision_id = decision.id`,
+        )
+        .get(),
+    ).toEqual({ disposition: "accepted", amount_minor: 1000 });
+    expect(upgradedContext.raw.pragma("foreign_key_check")).toEqual([]);
+    upgradedContext.raw.close();
+  });
+
+  it("backfills posted external transfers into the outside-scope balance", async () => {
+    const root = createTemporaryRoot();
+    const paths = createTestPaths(root);
+    const priorMigrations = join(root, "prior-phase-five-migrations");
+    const priorMeta = join(priorMigrations, "meta");
+    const currentJournal = JSON.parse(
+      readFileSync(join(process.cwd(), "drizzle", "meta", "_journal.json"), "utf8"),
+    ) as {
+      version: string;
+      dialect: string;
+      entries: Array<{
+        idx: number;
+        version: string;
+        when: number;
+        tag: string;
+        breakpoints: boolean;
+      }>;
+    };
+    const priorEntries = currentJournal.entries.slice(0, 13);
+
+    mkdirSync(priorMeta, { recursive: true });
+    for (const entry of priorEntries) {
+      cpSync(
+        join(process.cwd(), "drizzle", `${entry.tag}.sql`),
+        join(priorMigrations, `${entry.tag}.sql`),
+      );
+    }
+    writeFileSync(
+      join(priorMeta, "_journal.json"),
+      `${JSON.stringify({ ...currentJournal, entries: priorEntries }, null, 2)}\n`,
+    );
+
+    const priorContext = await initializeDatabase({
+      paths,
+      migrationsFolder: priorMigrations,
+    });
+    expect(priorContext.health.appliedMigrations).toBe(13);
+    priorContext.raw.exec(`
+      INSERT INTO app_settings (id, base_currency) VALUES (1, 'USD');
+      INSERT INTO financial_accounts (
+        name, type, currency, opening_date
+      ) VALUES ('Prior external checking', 'checking', 'USD', '2026-08-01');
+      INSERT INTO ledger_accounts (
+        name, kind, financial_account_id
+      ) VALUES ('Prior external checking', 'asset', 1);
+      INSERT INTO import_batches (
+        financial_account_id, source_filename, file_checksum, csv_schema_version,
+        currency, statement_start_date, statement_end_date,
+        opening_balance_minor, closing_balance_minor, row_count, warning_count,
+        validation_status, review_status, is_sealed, finalized_at, ledger_posted_at
+      ) VALUES (
+        1, 'prior-external.csv',
+        'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+        'csv-v1', 'USD', '2026-08-01', '2026-08-31',
+        10000, 9000, 1, 0, 'validated', 'in_review', 0,
+        NULL, NULL
+      );
+      INSERT INTO import_rows (
+        import_batch_id, original_row_number, transaction_date, description,
+        amount_minor, currency, default_effective_date, normalized_fingerprint,
+        validation_status, review_status, warnings_json
+      ) VALUES (
+        1, 2, '2026-08-10', 'Transfer to owned brokerage', -1000, 'USD',
+        '2026-08-10',
+        'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+        'valid', 'unresolved', '[]'
+      );
+      UPDATE import_batches SET is_sealed = 1 WHERE id = 1;
+      INSERT INTO import_row_decisions (
+        import_row_id, disposition, confirmed_type, effective_date
+      ) VALUES (1, 'accepted', 'transfer', '2026-08-10');
+      INSERT INTO journal_entries (
+        effective_date, description, source_type
+      ) VALUES ('2026-08-10', 'Transfer to owned brokerage', 'import');
+      INSERT INTO import_row_journal_entries (
+        import_row_id, journal_entry_id
+      ) VALUES (1, 1);
+      INSERT INTO postings (
+        journal_entry_id, ledger_account_id, amount_minor
+      ) VALUES
+        (1, (SELECT id FROM ledger_accounts WHERE financial_account_id = 1), -1000),
+        (1, (SELECT id FROM ledger_accounts WHERE system_key = 'transfer_clearing'), 1000);
+      UPDATE journal_entries
+      SET is_posted = 1, posted_at = CURRENT_TIMESTAMP
+      WHERE id = 1;
+      UPDATE import_batches
+      SET review_status = 'finalized',
+          finalized_at = CURRENT_TIMESTAMP,
+          ledger_posted_at = CURRENT_TIMESTAMP
+      WHERE id = 1;
+      INSERT INTO import_transfer_resolutions (
+        import_row_id, classification
+      ) VALUES (1, 'external_out');
+    `);
+    priorContext.raw.close();
+
+    const upgradedContext = await initializeDatabase({ paths });
+    const resolution = upgradedContext.raw
+      .prepare(
+        `SELECT reclassification_journal_entry_id AS journalEntryId
+         FROM import_transfer_resolutions WHERE import_row_id = 1`,
+      )
+      .get() as { journalEntryId: number };
+    const balances = upgradedContext.raw
+      .prepare(
+        `SELECT ledger.system_key AS systemKey,
+                coalesce(sum(posting.amount_minor), 0) AS amountMinor
+         FROM ledger_accounts AS ledger
+         LEFT JOIN postings AS posting ON posting.ledger_account_id = ledger.id
+         WHERE ledger.system_key IN ('transfer_clearing', 'outside_scope_transfers')
+         GROUP BY ledger.id
+         ORDER BY ledger.system_key`,
+      )
+      .all();
+
+    expect(upgradedContext.health.appliedMigrations).toBe(14);
+    expect(resolution.journalEntryId).toBeGreaterThan(1);
+    expect(balances).toEqual([
+      { systemKey: "outside_scope_transfers", amountMinor: 1000 },
+      { systemKey: "transfer_clearing", amountMinor: 0 },
+    ]);
+    expect(upgradedContext.raw.pragma("foreign_key_check")).toEqual([]);
     upgradedContext.raw.close();
   });
 

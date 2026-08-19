@@ -4,6 +4,8 @@ import { getDatabaseContext } from "@/db/client";
 import {
   categories,
   financialAccounts,
+  importRowJournalEntries,
+  importTransferResolutions,
   journalEntries,
   ledgerAccounts,
   postings,
@@ -28,6 +30,7 @@ export type JournalEntryInput = {
   sourceType: JournalSourceType;
   notes?: string;
   reversesEntryId?: number;
+  importSourceRowId?: number;
   postings: PostingInput[];
 };
 
@@ -85,6 +88,11 @@ export function postJournalEntryWithinTransaction(
   if (!description) {
     throw new DomainError("A journal entry requires a description.");
   }
+  if ((input.sourceType === "import") !== (input.importSourceRowId !== undefined)) {
+    throw new DomainError(
+      "Imported journal entries require exactly one imported source row.",
+    );
+  }
 
   if (normalizedPostings.length < 2) {
     throw new DomainError("A journal entry requires at least two nonzero postings.");
@@ -121,6 +129,16 @@ export function postJournalEntryWithinTransaction(
     })
     .run();
   const journalEntryId = Number(result.lastInsertRowid);
+
+  if (input.importSourceRowId !== undefined) {
+    transaction
+      .insert(importRowJournalEntries)
+      .values({
+        importRowId: input.importSourceRowId,
+        journalEntryId,
+      })
+      .run();
+  }
 
   transaction
     .insert(postings)
@@ -191,6 +209,25 @@ export async function reverseJournalEntry(input: {
     if (entry.reversesEntryId !== null) {
       throw new DomainError(
         "A reversal entry cannot be reversed. Post a documented replacement entry instead.",
+      );
+    }
+
+    const transferResolution = transaction
+      .select({ id: importTransferResolutions.id })
+      .from(importTransferResolutions)
+      .leftJoin(
+        importRowJournalEntries,
+        eq(importRowJournalEntries.importRowId, importTransferResolutions.importRowId),
+      )
+      .where(
+        sql`${importTransferResolutions.reclassificationJournalEntryId} = ${entry.id}
+          OR ${importRowJournalEntries.journalEntryId} = ${entry.id}`,
+      )
+      .get();
+
+    if (transferResolution) {
+      throw new DomainError(
+        "Change or clear the transfer resolution before reversing this entry so its explanation remains consistent.",
       );
     }
 

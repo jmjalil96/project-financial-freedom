@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatMoney,
+  minorUnitsToDecimalInput,
   MoneyParseError,
   parseMoneyToMinorUnits,
   sumMinorUnits,
@@ -52,6 +53,16 @@ describe("money", () => {
     expect(Object.is(parseMoneyToMinorUnits("-0.00", "USD"), -0)).toBe(false);
     expect(formatMoney(-0, "USD")).toBe("$0.00");
     expect(formatMoney(Number.MAX_SAFE_INTEGER, "USD")).toBe("$90,071,992,547,409.91");
+  });
+
+  it("converts minor units to exact decimal input and normalizes signed zero", () => {
+    expect(minorUnitsToDecimalInput(Number.MAX_SAFE_INTEGER, "USD")).toBe(
+      "90071992547409.91",
+    );
+    expect(minorUnitsToDecimalInput(-Number.MAX_SAFE_INTEGER, "USD")).toBe(
+      "-90071992547409.91",
+    );
+    expect(minorUnitsToDecimalInput(-0, "USD")).toBe("0.00");
   });
 
   it("rejects unsafe intermediate and aggregate minor-unit totals", () => {

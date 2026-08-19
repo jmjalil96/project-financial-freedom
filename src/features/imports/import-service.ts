@@ -24,6 +24,7 @@ import {
   type ImportIssue,
   type NormalizedCsvRow,
 } from "@/features/imports/csv-contract";
+import { refreshDuplicateCandidatesForBatch } from "@/features/reconciliation/duplicate-detection-service";
 import { findBaseCurrency } from "@/features/settings/settings-repository";
 
 export type ImportSourceInput = {
@@ -685,6 +686,8 @@ export async function commitValidatedImport(
       if (sealed.changes !== 1) {
         throw new Error("The validated import batch could not be sealed.");
       }
+
+      refreshDuplicateCandidatesForBatch(transaction, importBatchId);
 
       recordAuditEvent(transaction, {
         action: "import.committed",

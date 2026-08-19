@@ -71,6 +71,7 @@ export async function createAccountAction(
     revalidatePath("/accounts");
     revalidatePath("/dashboard");
     revalidatePath("/transactions");
+    revalidatePath("/coverage");
 
     return {
       status: "success",
@@ -84,25 +85,33 @@ export async function createAccountAction(
   }
 }
 
-const archiveSchema = z.coerce.number().int().positive();
+const accountIdSchema = z.coerce.number().int().positive();
+const archiveSchema = z.object({
+  accountId: accountIdSchema,
+  archivedOn: calendarDateSchema.optional(),
+});
 
 export async function archiveAccountAction(
   _previousState: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  const accountId = archiveSchema.safeParse(formData.get("accountId"));
+  const parsed = archiveSchema.safeParse({
+    accountId: formData.get("accountId"),
+    archivedOn: formData.get("archivedOn") || undefined,
+  });
 
-  if (!accountId.success) {
+  if (!parsed.success) {
     return {
       status: "error",
-      message: "The account identifier is invalid.",
+      message: parsed.error.issues[0]?.message ?? "Review the account closing date.",
     };
   }
 
   try {
-    await archiveFinancialAccount(accountId.data);
+    await archiveFinancialAccount(parsed.data.accountId, parsed.data.archivedOn);
     revalidatePath("/accounts");
     revalidatePath("/transactions");
+    revalidatePath("/coverage");
 
     return {
       status: "success",
@@ -120,7 +129,7 @@ export async function restoreAccountAction(
   _previousState: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  const accountId = archiveSchema.safeParse(formData.get("accountId"));
+  const accountId = accountIdSchema.safeParse(formData.get("accountId"));
 
   if (!accountId.success) {
     return {
@@ -134,6 +143,7 @@ export async function restoreAccountAction(
     revalidatePath("/accounts");
     revalidatePath("/transactions");
     revalidatePath("/dashboard");
+    revalidatePath("/coverage");
 
     return {
       status: "success",

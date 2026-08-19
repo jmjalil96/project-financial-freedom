@@ -1,8 +1,11 @@
 "use client";
 
 import {
+  ArrowLeftRight,
   CalendarCheck2,
+  CalendarRange,
   ChartNoAxesCombined,
+  ClipboardCheck,
   FileUp,
   Landmark,
   LayoutDashboard,
@@ -17,6 +20,9 @@ const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/accounts", label: "Accounts", icon: Landmark },
   { href: "/imports", label: "Imports", icon: FileUp },
+  { href: "/review", label: "Review", icon: ClipboardCheck },
+  { href: "/transfers", label: "Transfers", icon: ArrowLeftRight },
+  { href: "/coverage", label: "Coverage", icon: CalendarRange },
   { href: "/transactions", label: "Transactions", icon: ListTree },
   { href: "/budgets", label: "Budgets", icon: Tags },
   { href: "/net-worth", label: "Net worth", icon: ChartNoAxesCombined },
@@ -30,7 +36,7 @@ export function SidebarNav() {
   return (
     <nav className="sidebar-nav" aria-label="Primary navigation">
       {navigation.map(({ href, label, icon: Icon }) => {
-        const isActive = pathname === href;
+        const isActive = pathname === href || pathname.startsWith(`${href}/`);
 
         return (
           <Link

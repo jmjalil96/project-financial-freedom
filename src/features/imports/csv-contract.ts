@@ -6,6 +6,7 @@ import type { FinancialAccountType } from "@/domain/accounts";
 import { isCalendarDate } from "@/domain/calendar-date";
 import type { BaseCurrency } from "@/domain/currencies";
 import { parseMoneyToMinorUnits } from "@/domain/money";
+import { deriveDefaultEffectiveDate } from "@/domain/review/effective-date";
 
 export const csvSchemaVersion = "csv-v1" as const;
 export const maximumCsvFileBytes = 5 * 1024 * 1024;
@@ -361,7 +362,9 @@ export function parseCsvBytes(
     let amountMinor: number | null = null;
 
     try {
-      amountMinor = parseMoneyToMinorUnits(rawAmount, input.baseCurrency);
+      amountMinor = parseMoneyToMinorUnits(rawAmount, input.baseCurrency, {
+        allowZero: false,
+      });
     } catch (error) {
       rowErrors.push({
         severity: "error",
@@ -398,15 +401,13 @@ export function parseCsvBytes(
     }
 
     const suggestedType = rawSuggestedType as CsvSuggestedType | null;
-    const isUntypedCreditCardCharge =
-      input.accountType === "credit_card" && suggestedType === null && amountMinor < 0;
-    const defaultEffectiveDate =
-      input.accountType === "credit_card" &&
-      (suggestedType === "expense" ||
-        suggestedType === "refund" ||
-        isUntypedCreditCardCharge)
-        ? transactionDate
-        : (postedDate ?? transactionDate);
+    const defaultEffectiveDate = deriveDefaultEffectiveDate({
+      accountType: input.accountType,
+      transactionType: suggestedType,
+      transactionDate,
+      postedDate,
+      amountMinor,
+    });
 
     rows.push({
       originalRowNumber: line,

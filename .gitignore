@@ -6,9 +6,10 @@ node_modules/
 out/
 
 # Tests and tooling
-coverage/
+/coverage/
 playwright-report/
 test-results/
+.pw-browsers/
 *.tsbuildinfo
 
 # Local configuration

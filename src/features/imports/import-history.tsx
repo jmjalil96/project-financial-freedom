@@ -1,4 +1,5 @@
-import { FileClock, ShieldCheck } from "lucide-react";
+import { ArrowRight, FileClock, LockKeyhole, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 
 import { Pagination } from "@/components/pagination";
 import { isLiabilityAccount, toNaturalBalance } from "@/domain/accounts";
@@ -55,59 +56,78 @@ export function ImportHistory({
               toNaturalBalance(item.accountType, amountMinor);
 
             return (
-              <article className="import-history-card" key={item.id}>
-                <div className="import-history-card__main">
-                  <span className="import-history-card__icon">
-                    <ShieldCheck aria-hidden="true" size={17} />
-                  </span>
-                  <div>
-                    <div className="import-history-card__meta">
-                      <span>Import #{item.id}</span>
-                      <span>{item.csvSchemaVersion}</span>
-                      <span>{item.reviewStatus.replace("_", " ")}</span>
+              <Link
+                className="import-history-card__link"
+                href={`/imports/${item.id}/review`}
+                key={item.id}
+              >
+                <article className="import-history-card">
+                  <div className="import-history-card__main">
+                    <span className="import-history-card__icon">
+                      <ShieldCheck aria-hidden="true" size={17} />
+                    </span>
+                    <div>
+                      <div className="import-history-card__meta">
+                        <span>Import #{item.id}</span>
+                        <span>{item.csvSchemaVersion}</span>
+                        <span data-status={item.reviewStatus}>
+                          {item.reviewStatus.replace("_", " ")}
+                        </span>
+                      </div>
+                      <h3>{item.sourceFilename}</h3>
+                      <p>
+                        {item.accountName} ·{" "}
+                        {formatCalendarDate(item.statementStartDate)} to{" "}
+                        {formatCalendarDate(item.statementEndDate)}
+                      </p>
                     </div>
-                    <h3>{item.sourceFilename}</h3>
-                    <p>
-                      {item.accountName} · {formatCalendarDate(item.statementStartDate)}{" "}
-                      to {formatCalendarDate(item.statementEndDate)}
-                    </p>
                   </div>
-                </div>
 
-                <dl>
-                  <div>
-                    <dt>{liability ? "Opening owed" : "Opening"}</dt>
-                    <dd>
-                      {formatMoney(
-                        naturalBalance(item.openingBalanceMinor),
-                        item.currency,
-                      )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{liability ? "Closing owed" : "Closing"}</dt>
-                    <dd>
-                      {formatMoney(
-                        naturalBalance(item.closingBalanceMinor),
-                        item.currency,
-                      )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Source rows</dt>
-                    <dd>{item.rowCount}</dd>
-                  </div>
-                  <div>
-                    <dt>Warnings</dt>
-                    <dd>{item.warningCount}</dd>
-                  </div>
-                </dl>
+                  <dl>
+                    <div>
+                      <dt>{liability ? "Opening owed" : "Opening"}</dt>
+                      <dd>
+                        {formatMoney(
+                          naturalBalance(item.openingBalanceMinor),
+                          item.currency,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{liability ? "Closing owed" : "Closing"}</dt>
+                      <dd>
+                        {formatMoney(
+                          naturalBalance(item.closingBalanceMinor),
+                          item.currency,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Source rows</dt>
+                      <dd>{item.rowCount}</dd>
+                    </div>
+                    <div>
+                      <dt>Warnings</dt>
+                      <dd>{item.warningCount}</dd>
+                    </div>
+                  </dl>
 
-                <div className="import-history-card__trace">
-                  <code>{item.fileChecksum}</code>
-                  <span>{formatImportedAt(item.importedAt)}</span>
-                </div>
-              </article>
+                  <div className="import-history-card__trace">
+                    <code>{item.fileChecksum}</code>
+                    <span>{formatImportedAt(item.importedAt)}</span>
+                    <strong className="import-history-card__cta">
+                      {item.reviewStatus === "finalized" ? (
+                        <LockKeyhole aria-hidden="true" size={12} />
+                      ) : (
+                        <ArrowRight aria-hidden="true" size={12} />
+                      )}
+                      {item.reviewStatus === "finalized"
+                        ? "View finalized receipt"
+                        : "Review statement"}
+                    </strong>
+                  </div>
+                </article>
+              </Link>
             );
           })}
           <Pagination

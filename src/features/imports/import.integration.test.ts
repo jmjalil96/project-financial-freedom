@@ -183,13 +183,13 @@ describe("Phase 3 import pipeline", () => {
   it("commits the advertised 5,000-row maximum in bounded SQL batches", async () => {
     const rows = Array.from(
       { length: 5_000 },
-      (_, index) => `2026-08-01,ROW ${index + 1},0.00,USD`,
+      (_, index) => `2026-08-01,ROW ${index + 1},0.01,USD`,
     );
     const input = sourceInput(
       ["transaction_date,description,amount,currency", ...rows].join("\n"),
       {
         openingBalance: "0.00",
-        closingBalance: "0.00",
+        closingBalance: "50.00",
         sourceFilename: "maximum-size-import.csv",
       },
     );

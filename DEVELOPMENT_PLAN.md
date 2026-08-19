@@ -465,6 +465,11 @@ Support explicit classifications for:
 - Transfer from an untracked external account.
 - Transfer still in transit.
 
+In this plan, an untracked external account is still owned by the user but is outside
+the workspace's transaction-tracked account set. Phase 5 keeps those transfers out of
+income and expense, moves their explanation balance out of temporary clearing, and
+retains an immutable source-linked reclassification trail.
+
 ### Coverage
 
 Calculate statement coverage using actual intervals, not transaction dates.

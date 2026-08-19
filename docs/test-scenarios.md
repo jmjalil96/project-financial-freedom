@@ -6,10 +6,14 @@ These synthetic scenarios are the acceptance contract for the version 1 financia
 
 All examples use `USD`, dates in `YYYY-MM-DD`, and decimal amounts for readability. Production code stores the same values in integer minor units.
 
+Phase 4 assertions appear in the expected decisions and reconciliation results. Phase 5
+creates the expected ledger entries atomically when that reviewed evidence is finalized.
+
 Related documents:
 
 - [Accounting Rules](accounting-rules.md)
 - [CSV Import v1](csv-import-v1.md)
+- [Transaction Review](transaction-review.md)
 - [Month Close](month-close.md)
 
 ## Ledger Notation
@@ -42,9 +46,10 @@ The postings for every finalized event must sum to zero.
 
 ### Expected Decision
 
+- Disposition: `accepted`.
 - Effective date: `2026-08-31`.
 - Confirmed type: income.
-- Confirmed category: Salary.
+- Positive review allocation: `3000.00` to the income category Salary.
 
 ### Expected Ledger
 
@@ -73,9 +78,10 @@ The postings for every finalized event must sum to zero.
 
 ### Expected Decision
 
+- Disposition: `accepted`.
 - Effective date: `2026-08-05`, using the bank-account posted-date rule.
 - Confirmed type: expense.
-- Confirmed category: Groceries.
+- Positive review allocation: `82.45` to the expense category Groceries.
 
 ### Expected Ledger
 
@@ -104,9 +110,10 @@ The postings for every finalized event must sum to zero.
 
 ### Expected Decision
 
+- Disposition: `accepted`.
 - Effective date: `2026-08-04`, using the credit-card purchase-date rule.
 - Confirmed type: expense.
-- Confirmed category: Groceries.
+- Positive review allocation: `82.45` to the expense category Groceries.
 
 ### Expected Ledger
 
@@ -142,10 +149,11 @@ The postings for every finalized event must sum to zero.
 
 ### Expected Decision
 
+- Disposition for both rows: `accepted`.
 - Both effective dates: `2026-08-10`.
 - Confirm both rows as transfer legs.
-- Match the checking leg to the Visa leg.
 - No income or expense category.
+- Phase 5 pairs the checking leg to the Visa leg as a confirmed card payment.
 
 ### Expected Ledger
 
@@ -185,9 +193,11 @@ Combined transfer-clearing balance: `0.00`.
 
 ### Expected Decision
 
+- Disposition: `accepted`.
 - Effective date: `2026-08-12`.
 - Confirmed type: refund.
-- Confirmed category: Groceries.
+- Positive review allocation: `20.00` to the expense category Groceries.
+- The future category posting is negative so that the refund reduces spending.
 
 ### Expected Ledger
 
@@ -215,10 +225,12 @@ Combined transfer-clearing balance: `0.00`.
 
 ### Expected Decision
 
+- Disposition: `accepted`.
 - Effective date: `2026-08-18`.
 - Confirmed type: expense.
-- Split `90.00` to Groceries.
-- Split `30.00` to Household.
+- Allocate the positive review magnitude `90.00` to Groceries.
+- Allocate the positive review magnitude `30.00` to Household.
+- The allocations total the absolute imported amount, `120.00`.
 
 ### Expected Ledger
 
@@ -250,11 +262,10 @@ An external AI result contains the same posted checking transaction twice:
 
 - Effective date for the accepted row: `2026-08-05`.
 - Confirmed type: expense.
-- Confirmed category: Groceries.
-- Accept one row as the economic event.
-- Mark the second row as an extraction duplicate.
+- Positive review allocation: `82.45` to the expense category Groceries.
+- Give one row the `accepted` disposition as the canonical economic event.
+- Give the second row the `duplicate` disposition and link it to the accepted row.
 - Retain both imported rows.
-- Record the duplicate decision and link to the accepted event.
 
 ### Expected Ledger
 
@@ -292,10 +303,12 @@ Only one journal entry exists:
 
 ### Expected Decision
 
+- Disposition for both rows: `accepted`.
 - Effective date for checking: `2026-08-20`.
 - Effective date for savings: `2026-08-21`.
-- Match the two transfer legs despite the one-day posting difference.
+- Confirm both rows as transfers.
 - No income or expense category.
+- Phase 5 matches the legs despite the one-day posting difference.
 
 ### Expected Ledger
 
@@ -334,9 +347,10 @@ Visa statement B:
 
 ### Expected Decision
 
+- Disposition: `accepted`.
 - Purchase effective date: `2026-08-20`.
 - Confirmed type: expense.
-- Confirmed category: Dining.
+- Positive review allocation: `60.00` to the expense category Dining.
 
 ### Expected Ledger
 
@@ -368,7 +382,10 @@ Visa statement B:
 
 ### Expected Decision
 
+- Disposition: `accepted`.
 - Effective date: `2026-08-31`.
+- Confirmed type: expense.
+- Positive review allocation: `45.00` to the expense category Books.
 - Statement membership remains in the later statement.
 
 ### Expected Ledger
@@ -454,10 +471,12 @@ Matching checking activity:
 
 ### Expected Decision
 
+- Disposition for all three imported rows: `accepted`.
 - Interest effective date: `2026-08-15`.
-- Interest category: Interest.
+- Positive review allocation: `50.00` to the expense category Interest.
 - Both payment-leg effective dates: `2026-08-20`.
-- Match the payment rows as a transfer with no income or expense category.
+- Confirm both payment rows as transfers with no income or expense category.
+- Phase 5 matches the payment rows as a confirmed card or loan payment.
 
 ### Expected Ledger
 
@@ -508,6 +527,7 @@ closing signed loan balance:  -9550.00
 
 ### Expected Decision
 
+- Disposition: `accepted`.
 - Default effective date: `2026-08-25`.
 - Type remains unresolved.
 - Category remains unresolved.
@@ -543,7 +563,9 @@ closing signed loan balance:  -9550.00
 ### Expected Result
 
 - Reconciliation difference is exactly `0.00`.
-- The statement may proceed after all row decisions are complete.
+- The statement may be review-finalized after all row decisions are complete.
+- Finalization locks the decisions and Phase 5 creates the linked ledger postings in
+  the same transaction.
 - Entering the closing amount owed as `-240.00` in the user interface is rejected or corrected because user-facing liability balances are entered as positive amounts owed.
 
 ---
@@ -557,9 +579,20 @@ All scenarios must satisfy:
 - Income, expense, transfer, refund, and opening-balance behavior matches [Accounting Rules](accounting-rules.md).
 - Report months use confirmed effective dates.
 - Reconciliation uses statement coverage and accepted signed account amounts.
+- Source, provisional, and accepted activity totals remain independently traceable.
 - Transfers never create income or expense.
+- Phase 4 confirms transfer types; Phase 5 posts each leg independently through clearing
+  and records explicit user-confirmed matches or unmatched classifications.
+- An external classification means an owned account outside the tracked account set; it
+  moves the amount out of transfer clearing through a linked, reversible system entry.
+- Accepted expenses are negative source activity, while accepted income and refunds are positive source activity.
 - Refunds reduce expenses rather than create income.
 - Duplicates never create a second economic event.
+- A later duplicate row points to an earlier accepted canonical row, and a canonical row referenced by a finalized batch remains accepted.
+- Zero-amount CSV transaction rows are rejected.
+- Confirmed effective dates never precede the owning account's opening date.
+- Row readiness is not replaced by a repeated statement-level reconciliation warning.
+- Finalized Phase 4 review decisions cannot be edited or reopened.
 - Unknown information remains unresolved.
 - Closed reports never change silently.
 - Every reported amount traces to its source evidence or manual valuation.

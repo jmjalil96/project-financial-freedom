@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { getDatabaseContext } from "@/db/client";
 import {
   financialAccounts,
+  importBatches,
   journalEntries,
   ledgerAccounts,
   postings,
@@ -13,7 +14,7 @@ import {
   toLedgerBalance,
   type FinancialAccountType,
 } from "@/domain/accounts";
-import { calendarDateSchema } from "@/domain/calendar-date";
+import { calendarDateSchema, getLocalCalendarDate } from "@/domain/calendar-date";
 import { baseCurrencySchema, type BaseCurrency } from "@/domain/currencies";
 import { DomainError } from "@/domain/errors";
 import { sumMinorUnits } from "@/domain/money";
@@ -30,6 +31,7 @@ export type FinancialAccount = {
   openingDate: string;
   requiredForClose: boolean;
   archivedAt: string | null;
+  archivedOn: string | null;
   balanceMinor: number;
 };
 
@@ -145,6 +147,7 @@ export async function listFinancialAccounts(): Promise<FinancialAccount[]> {
       openingDate: financialAccounts.openingDate,
       requiredForClose: financialAccounts.requiredForClose,
       archivedAt: financialAccounts.archivedAt,
+      archivedOn: financialAccounts.archivedOn,
       balanceMinor: sql<number>`coalesce(sum(case when ${journalEntries.isPosted} = 1 then ${postings.amountMinor} else 0 end), 0)`,
     })
     .from(financialAccounts)
@@ -173,14 +176,22 @@ export async function listFinancialAccounts(): Promise<FinancialAccount[]> {
 
 export async function archiveFinancialAccount(
   financialAccountId: number,
+  archivedOnInput?: string,
 ): Promise<void> {
   const { db } = await getDatabaseContext();
+  const today = getLocalCalendarDate();
+  const archivedOn = calendarDateSchema.parse(archivedOnInput ?? today);
+
+  if (archivedOn > today) {
+    throw new DomainError("The account closing date cannot be in the future.");
+  }
 
   db.transaction((transaction) => {
     const account = transaction
       .select({
         id: financialAccounts.id,
         name: financialAccounts.name,
+        openingDate: financialAccounts.openingDate,
         archivedAt: financialAccounts.archivedAt,
         ledgerAccountId: ledgerAccounts.id,
       })
@@ -198,6 +209,29 @@ export async function archiveFinancialAccount(
 
     if (account.archivedAt) {
       return;
+    }
+
+    if (archivedOn < account.openingDate) {
+      throw new DomainError(
+        `The account closing date cannot be before its opening date (${account.openingDate}).`,
+      );
+    }
+
+    const unpostedImport = transaction
+      .select({ id: importBatches.id })
+      .from(importBatches)
+      .where(
+        and(
+          eq(importBatches.financialAccountId, account.id),
+          sql`${importBatches.ledgerPostedAt} IS NULL`,
+        ),
+      )
+      .get();
+
+    if (unpostedImport) {
+      throw new DomainError(
+        "Review, finalize, and post every imported statement for this account before archiving it.",
+      );
     }
 
     const balance = transaction
@@ -219,10 +253,32 @@ export async function archiveFinancialAccount(
       throw new DomainError("Bring the account balance to zero before archiving it.");
     }
 
+    const latestActivity = transaction
+      .select({
+        effectiveDate: sql<string | null>`max(${journalEntries.effectiveDate})`,
+      })
+      .from(postings)
+      .innerJoin(
+        journalEntries,
+        and(
+          eq(journalEntries.id, postings.journalEntryId),
+          eq(journalEntries.isPosted, true),
+        ),
+      )
+      .where(eq(postings.ledgerAccountId, account.ledgerAccountId))
+      .get()?.effectiveDate;
+
+    if (latestActivity && archivedOn < latestActivity) {
+      throw new DomainError(
+        `The account closing date cannot be before its latest ledger activity (${latestActivity}).`,
+      );
+    }
+
     transaction
       .update(financialAccounts)
       .set({
         archivedAt: sql`CURRENT_TIMESTAMP`,
+        archivedOn,
         updatedAt: sql`CURRENT_TIMESTAMP`,
       })
       .where(eq(financialAccounts.id, financialAccountId))
@@ -234,6 +290,7 @@ export async function archiveFinancialAccount(
       entityId: financialAccountId,
       details: {
         name: account.name,
+        archivedOn,
       },
     });
   });
@@ -267,6 +324,7 @@ export async function restoreFinancialAccount(
       .update(financialAccounts)
       .set({
         archivedAt: null,
+        archivedOn: null,
         updatedAt: sql`CURRENT_TIMESTAMP`,
       })
       .where(eq(financialAccounts.id, financialAccountId))

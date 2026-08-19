@@ -119,6 +119,28 @@ export function formatMoney(amountMinor: number, currency: BaseCurrency): string
   return formatExact(exactDecimal);
 }
 
+export function minorUnitsToDecimalInput(
+  amountMinor: number,
+  currency: BaseCurrency,
+): string {
+  if (!Number.isSafeInteger(amountMinor)) {
+    throw new DomainError("The amount cannot be converted safely.");
+  }
+
+  const { fractionDigits, scale } = getCurrencyMetadata(currency);
+  const normalizedAmount = amountMinor === 0 ? 0 : amountMinor;
+  const negative = normalizedAmount < 0;
+  const absoluteMinor = BigInt(Math.abs(normalizedAmount));
+  const whole = absoluteMinor / BigInt(scale);
+  const fraction = absoluteMinor % BigInt(scale);
+  const decimal =
+    fractionDigits === 0
+      ? whole.toString()
+      : `${whole}.${fraction.toString().padStart(fractionDigits, "0")}`;
+
+  return negative ? `-${decimal}` : decimal;
+}
+
 export function sumMinorUnits(
   amounts: Iterable<number>,
   errorMessage = "The combined amount is too large.",

@@ -146,6 +146,11 @@ describe("CSV import v1 parser", () => {
       code: "invalid_amount",
     },
     {
+      name: "zero amount",
+      csv: "transaction_date,description,amount,currency\n2026-08-01,Placeholder,0.00,USD",
+      code: "invalid_amount",
+    },
+    {
       name: "mismatched currency",
       csv: "transaction_date,description,amount,currency\n2026-08-01,Salary,1,EUR",
       code: "currency_mismatch",
