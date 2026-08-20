@@ -39,6 +39,18 @@ export function formatCalendarDate(value: string): string {
   }).format(createUtcCalendarDate(year!, month!, day!));
 }
 
+export function formatCalendarMonth(value: string): string {
+  if (!isCalendarMonth(value)) {
+    throw new Error("Calendar months must use YYYY-MM.");
+  }
+  const [year, month] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(createUtcCalendarDate(year!, month!, 1));
+}
+
 export function addCalendarDays(value: string, days: number): string {
   const date = calendarDateSchema.parse(value);
   if (!Number.isInteger(days)) {

@@ -686,3 +686,154 @@ export const auditEvents = sqliteTable(
     ),
   ],
 );
+
+export const monthlyBudgets = sqliteTable(
+  "monthly_budgets",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    targetMonth: text("target_month").notNull(),
+    categoryId: integer("category_id")
+      .notNull()
+      .references(() => categories.id, { onDelete: "restrict" }),
+    amountMinor: integer("amount_minor").notNull(),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex("monthly_budgets_month_category_unique").on(
+      table.targetMonth,
+      table.categoryId,
+    ),
+    index("monthly_budgets_category_month_index").on(
+      table.categoryId,
+      table.targetMonth,
+    ),
+    check(
+      "monthly_budgets_target_month",
+      sql`length(${table.targetMonth}) = 7
+        AND ${table.targetMonth} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'
+        AND CAST(substr(${table.targetMonth}, 6, 2) AS INTEGER) BETWEEN 1 AND 12`,
+    ),
+    check("monthly_budgets_nonnegative", sql`${table.amountMinor} >= 0`),
+  ],
+);
+
+export const monthCloseRevisions = sqliteTable(
+  "month_close_revisions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    targetMonth: text("target_month").notNull(),
+    revisionNumber: integer("revision_number").notNull(),
+    previousRevisionId: integer("previous_revision_id").references(
+      (): AnySQLiteColumn => monthCloseRevisions.id,
+      { onDelete: "restrict" },
+    ),
+    ledgerCutoffEntryId: integer("ledger_cutoff_entry_id").references(
+      () => journalEntries.id,
+      { onDelete: "restrict" },
+    ),
+    incomeMinor: integer("income_minor").notNull(),
+    expensesMinor: integer("expenses_minor").notNull(),
+    savingsMinor: integer("savings_minor").notNull(),
+    savingsRateBasisPoints: integer("savings_rate_basis_points"),
+    budgetPlannedMinor: integer("budget_planned_minor").notNull(),
+    budgetActualMinor: integer("budget_actual_minor").notNull(),
+    debtMinor: integer("debt_minor").notNull(),
+    debtChangeMinor: integer("debt_change_minor").notNull(),
+    netWorthMinor: integer("net_worth_minor").notNull(),
+    netWorthChangeMinor: integer("net_worth_change_minor").notNull(),
+    warningCount: integer("warning_count").notNull(),
+    snapshotVersion: integer("snapshot_version").notNull().default(1),
+    snapshotJson: text("snapshot_json").notNull(),
+    closedAt: text("closed_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex("month_close_revisions_month_revision_unique").on(
+      table.targetMonth,
+      table.revisionNumber,
+    ),
+    uniqueIndex("month_close_revisions_id_month_unique").on(
+      table.id,
+      table.targetMonth,
+    ),
+    uniqueIndex("month_close_revisions_previous_unique").on(table.previousRevisionId),
+    index("month_close_revisions_month_closed_index").on(
+      table.targetMonth,
+      table.closedAt,
+    ),
+    check(
+      "month_close_revisions_target_month",
+      sql`length(${table.targetMonth}) = 7
+        AND ${table.targetMonth} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'
+        AND CAST(substr(${table.targetMonth}, 6, 2) AS INTEGER) BETWEEN 1 AND 12`,
+    ),
+    check("month_close_revisions_revision_number", sql`${table.revisionNumber} > 0`),
+    check(
+      "month_close_revisions_previous_not_self",
+      sql`${table.previousRevisionId} IS NULL OR ${table.previousRevisionId} != ${table.id}`,
+    ),
+    check("month_close_revisions_warning_count", sql`${table.warningCount} >= 0`),
+    check("month_close_revisions_snapshot_version", sql`${table.snapshotVersion} = 1`),
+    check(
+      "month_close_revisions_snapshot_json",
+      sql`json_valid(${table.snapshotJson})`,
+    ),
+  ],
+);
+
+export const monthCloseStates = sqliteTable(
+  "month_close_states",
+  {
+    targetMonth: text("target_month").primaryKey(),
+    status: text("status").notNull(),
+    activeRevisionId: integer("active_revision_id"),
+    latestRevisionId: integer("latest_revision_id").notNull(),
+    lastReopenedAt: text("last_reopened_at"),
+    lastReopenReason: text("last_reopen_reason"),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    foreignKey({
+      name: "month_close_states_active_revision_fk",
+      columns: [table.activeRevisionId, table.targetMonth],
+      foreignColumns: [monthCloseRevisions.id, monthCloseRevisions.targetMonth],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "month_close_states_latest_revision_fk",
+      columns: [table.latestRevisionId, table.targetMonth],
+      foreignColumns: [monthCloseRevisions.id, monthCloseRevisions.targetMonth],
+    }).onDelete("restrict"),
+    index("month_close_states_status_month_index").on(table.status, table.targetMonth),
+    check(
+      "month_close_states_target_month",
+      sql`length(${table.targetMonth}) = 7
+        AND ${table.targetMonth} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'
+        AND CAST(substr(${table.targetMonth}, 6, 2) AS INTEGER) BETWEEN 1 AND 12`,
+    ),
+    check("month_close_states_status", sql`${table.status} IN ('closed', 'reopened')`),
+    check(
+      "month_close_states_details",
+      sql`(
+        ${table.status} = 'closed'
+        AND ${table.activeRevisionId} IS NOT NULL
+        AND ${table.activeRevisionId} = ${table.latestRevisionId}
+        AND ${table.lastReopenedAt} IS NULL
+        AND ${table.lastReopenReason} IS NULL
+      ) OR (
+        ${table.status} = 'reopened'
+        AND ${table.activeRevisionId} IS NULL
+        AND ${table.lastReopenedAt} IS NOT NULL
+        AND ${table.lastReopenReason} IS NOT NULL
+        AND length(trim(${table.lastReopenReason})) > 0
+      )`,
+    ),
+  ],
+);

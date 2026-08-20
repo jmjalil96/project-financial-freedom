@@ -604,6 +604,90 @@ Before an absolute investment valuation exists:
 
 ---
 
+## Scenario 16: Budgeted Month Close, Refund, and Late Evidence
+
+### January Activity
+
+- Salary income: `1000.00`.
+- Rent expense: `400.00`.
+- Rent refund: `100.00`, assigned back to Housing.
+- Checking-to-savings transfer: `50.00`.
+- Housing budget target: `500.00`.
+- Groceries budget target copied from December: `200.00`.
+
+January is after its final calendar day, every required account has finalized continuous
+coverage, transaction and duplicate decisions are complete, transfers are explained,
+and every applicable manual item has current or explicitly carried evidence.
+
+### Expected Live Report
+
+- Income: `1000.00`.
+- Expenses: `300.00`.
+- Savings: `700.00`.
+- Savings rate: `70.0%`.
+- Budget planned: `700.00`.
+- Budget actual: `300.00`.
+- Budget remaining: `400.00`.
+- The transfer appears in account and transfer evidence but not in income, expenses, or
+  budget actuals.
+- Every aggregate opens its journal, import-row, budget-target, account, or valuation
+  evidence.
+
+### Expected Close and Reopen Behavior
+
+- Closing creates revision 1 with its timestamp, finalized statement manifest, ledger
+  cutoff, coverage proof, budget targets, report details, and warnings.
+- January's budget, ledger history, valuation evidence, and applicable lifecycle dates
+  cannot change while revision 1 is active.
+- A late January receipt requires a reasoned reopen; revision 1 remains readable.
+- Reopening January also reopens every later closed month.
+- After the receipt is posted and the months are reclosed chronologically, January has
+  revision 2 linked to revision 1. Revision 1 continues to show its original `300.00`
+  expense total.
+
+---
+
+## Scenario 17: Trusted Dashboard and Exact Monthly Bridge
+
+January and February are closed in order. A cash account begins February with a
+`500.00` opening position. February then contains `200.00` of salary income and
+`50.00` of grocery expense.
+
+### Expected Dashboard Focus
+
+- February is the latest trusted month and is labeled closed.
+- The current calendar month remains a separate provisional workflow even when it has
+  no actionable blocker beyond waiting for month-end.
+- February income is `200.00`, expenses are `50.00`, savings are `150.00`, and the
+  savings rate is `75.0%`.
+- Groceries is the largest positive spending category at `50.00`.
+- The preceding January report is the comparison month.
+
+### Expected Net-Worth Bridge
+
+```text
+income less expenses       150.00
+manual-value movement        0.00
+other balance-sheet movement 500.00
+net-worth change            650.00
+```
+
+The opening position remains visible in the exact remainder. It is not described as
+income, savings, spending, or a valuation gain. Each summary card and signal opens its
+report or workflow evidence.
+
+### Expected Deterministic Signals
+
+- A merchant is first-seen only from posted imported expense evidence and only when no
+  earlier posted expense uses its normalized or source merchant name.
+- An exact normalized description that occurs in the focus month and another month in
+  the trailing six months is shown as repeated activity.
+- The repeated description is not automatically labeled a subscription.
+- Negative category actuals caused by net refunds are excluded from largest-spending
+  rankings.
+
+---
+
 ## Cross-Scenario Acceptance Rules
 
 All scenarios must satisfy:

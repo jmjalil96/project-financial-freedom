@@ -234,6 +234,41 @@ An opening balance establishes the starting financial position without creating 
 - Opening balances must identify their effective date.
 - Changing a finalized opening balance requires a documented correction rather than direct mutation.
 
+## Budgets and Monthly Report Totals
+
+A budget is a plan attached to one expense category and one calendar month.
+
+- Targets are nonnegative integer minor-unit amounts.
+- There is at most one target for an expense category in a month.
+- Copying the prior month fills only missing targets and preserves targets already
+  chosen for the destination month.
+- There is no rollover, envelope balance, or allocation requirement.
+- A missing target is visible but does not block close.
+- A target can be edited while its month is open. A closed month's targets are locked
+  until that month is explicitly reopened.
+
+Monthly actuals come only from posted category-ledger postings whose effective date is
+inside the calendar month:
+
+```text
+income = -sum(income category postings)
+expenses = sum(expense category postings)
+savings = income - expenses
+savings rate = savings / income, only when income > 0
+```
+
+Refund postings are negative expense amounts, so they reduce category and total
+spending. Transfers, opening balances, manual valuations, and balance adjustments have
+no income or expense category posting and are therefore excluded. Savings rates are
+stored as integer basis points in close revisions and displayed as percentages.
+
+The budget remaining amount is planned spending minus actual spending. It may exceed
+the plan after a net refund or become negative when spending is over target.
+
+Account balances include every posted account-ledger entry effective on or before
+month-end. Debt and net worth use the same month-end ledger boundary plus the applicable
+dated manual valuations described below.
+
 ## Statement Reconciliation
 
 Statements use signed internal balances:
@@ -308,6 +343,36 @@ Property, vehicles, investments tracked only by value, and debts without transac
 - The outside-scope-transfer balance is shown separately and must trace to explicit owned-but-untracked classifications.
 - Provisional months must be labeled as provisional.
 - Every aggregate must be traceable to ledger postings or valuation records and then to its source.
+
+## Dashboard Comparisons and Signals
+
+The dashboard is a read model over reports and workflow evidence. It creates no
+financial records and changes no accounting result.
+
+- The most recent active close revision is the trusted focus month. If no month has
+  closed, the current calendar month is explicitly provisional.
+- Current-month workflow status remains separate even when the dashboard focuses on an
+  earlier closed report.
+- Month-over-month comparisons use the immediately preceding calendar month and its
+  preserved close revision when one exists.
+- Largest-category and increase rankings use positive expense actuals; a net refund is
+  not presented as spending.
+- A category is over budget only when it has a target and actual spending exceeds that
+  target. Missing optional targets remain visible but do not become close blockers.
+- First-seen merchant facts use the reviewed normalized merchant when available and
+  otherwise the imported source merchant. Earlier posted expense evidence prevents the
+  merchant from being called new.
+- Repeated activity means the normalized source description appears in the focus month
+  and at least one other month in the trailing six-month window. The app does not infer
+  that it is a subscription.
+- The net-worth bridge uses current-month savings, manual-valuation movement, and an
+  exact remainder called other balance-sheet movement. That remainder is not silently
+  reclassified as spending or valuation gain.
+- Dashboard workflow attention comes from current import, review, duplicate, transfer,
+  valuation, coverage, budget, and close-readiness evidence.
+
+Every dashboard total or signal links to the report or workflow surface that produced
+it. A closed result and a live provisional result must never share an unlabeled state.
 
 ## Deliberate Version 1 Limits
 

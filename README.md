@@ -6,7 +6,7 @@ The product goal is documented in [PRODUCT.md](PRODUCT.md), and implementation p
 
 ## Current Status
 
-Phases 1 through 6 provide:
+Phases 1 through 8 provide:
 
 - A local-only Next.js application bound to `127.0.0.1` with a loopback Host allowlist.
 - Base-currency onboarding that freezes once financial data exists.
@@ -43,10 +43,30 @@ Phases 1 through 6 provide:
   freshness, and component-level source evidence.
 - Explicit links from outside-scope transfers to manual valuations that prevent the
   same owned value from being counted twice.
+- One nonnegative target per expense category and calendar month, with copy-forward
+  that fills only missing targets and never rolls balances over.
+- Ledger-exact income, expense, refund-adjusted budget actuals, savings, debt,
+  account-balance, and net-worth reports with source drill-downs.
+- Actionable close readiness across statement coverage, review decisions, duplicates,
+  transfers, valuations, adjustments, and chronological close state.
+- Immutable versioned month-close snapshots with preserved evidence, budget targets,
+  statement manifests, ledger cutoffs, warnings, and report totals.
+- Explicit reopening that preserves prior revisions, invalidates every later close,
+  and protects closed results from earlier-dated ledger or valuation changes.
+- A decision-focused dashboard that keeps the latest trusted close separate from the
+  current provisional month and links every aggregate back to its evidence.
+- Deterministic month-over-month facts for spending, budgets, income, debt, net worth,
+  first-seen merchants, repeated descriptions, and valuation freshness.
+- An exact net-worth bridge that reports cash flow, manual-value movement, and the
+  remaining balance-sheet movement without inventing an explanation.
 
 Finalizing a reviewed statement now seals its evidence and posts every accepted row in
 the same database transaction. Older Phase 4-only finalized statements can be posted
 once through the finalization receipt without reopening their locked decisions.
+
+The functional MVP workflow and its decision layer are complete through Phase 8:
+prepare the evidence, close a reproducible month, and use the resulting dashboard to
+understand what changed and what requires attention next.
 
 ## Run Locally
 

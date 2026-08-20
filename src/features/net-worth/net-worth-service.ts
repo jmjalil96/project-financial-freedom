@@ -34,6 +34,7 @@ import {
   type ValuationFrequency,
 } from "@/domain/net-worth";
 import { recordAuditEvent } from "@/features/audit/audit-service";
+import { assertLifecycleChangeOpenInDatabase } from "@/features/month-close/month-lock-service";
 
 type ManualItemRow = typeof manualItems.$inferSelect;
 type ValuationRow = typeof manualItemValuations.$inferSelect;
@@ -432,13 +433,18 @@ function buildSnapshotInDatabase(
   };
 }
 
-export async function getNetWorthSnapshot(
+export function getNetWorthSnapshotInDatabase(
+  database: AppDatabase | AppTransaction,
   targetMonth: string,
-): Promise<NetWorthSnapshot> {
-  const { db } = await getDatabaseContext();
-  const current = buildSnapshotInDatabase(db, targetMonth, true);
+  includeManualItemViews = true,
+): NetWorthSnapshot {
+  const current = buildSnapshotInDatabase(
+    database,
+    targetMonth,
+    includeManualItemViews,
+  );
   const previousMonth = shiftCalendarMonth(targetMonth, -1);
-  const previous = buildSnapshotInDatabase(db, previousMonth, false);
+  const previous = buildSnapshotInDatabase(database, previousMonth, false);
   return {
     ...current,
     previousMonth,
@@ -447,6 +453,13 @@ export async function getNetWorthSnapshot(
     previousDebtMinor: previous.debtMinor,
     debtChangeMinor: current.debtMinor - previous.debtMinor,
   };
+}
+
+export async function getNetWorthSnapshot(
+  targetMonth: string,
+): Promise<NetWorthSnapshot> {
+  const { db } = await getDatabaseContext();
+  return getNetWorthSnapshotInDatabase(db, targetMonth);
 }
 
 export async function createManualItem(input: {
@@ -471,6 +484,11 @@ export async function createManualItem(input: {
   }
   const normalizedName = normalizeManualItemName(name);
   return db.transaction((transaction) => {
+    assertLifecycleChangeOpenInDatabase(
+      transaction,
+      openingDate,
+      "starting this manual item's history",
+    );
     const accountConflict = transaction
       .select({ name: financialAccounts.name })
       .from(financialAccounts)
@@ -540,6 +558,11 @@ export async function recordManualValuation(input: {
   }
   return db.transaction((transaction) => {
     const item = loadActiveManualItem(transaction, input.manualItemId);
+    assertLifecycleChangeOpenInDatabase(
+      transaction,
+      effectiveDate,
+      "recording or correcting a manual valuation",
+    );
     if (effectiveDate < item.openingDate) {
       throw new DomainError(
         `The valuation date cannot be before tracking began (${item.openingDate}).`,
@@ -600,6 +623,11 @@ export async function carryForwardManualValuation(input: {
   }
   return db.transaction((transaction) => {
     const item = loadActiveManualItem(transaction, input.manualItemId);
+    assertLifecycleChangeOpenInDatabase(
+      transaction,
+      effectiveDate,
+      "carrying a manual valuation forward",
+    );
     const valuations = transaction
       .select()
       .from(manualItemValuations)
@@ -659,6 +687,11 @@ export async function archiveManualItem(
   }
   db.transaction((transaction) => {
     const item = loadActiveManualItem(transaction, manualItemId);
+    assertLifecycleChangeOpenInDatabase(
+      transaction,
+      archivedOn,
+      "archiving this manual item",
+    );
     if (archivedOn < item.openingDate) {
       throw new DomainError("The closing date cannot be before tracking began.");
     }
@@ -706,6 +739,14 @@ export async function restoreManualItem(manualItemId: number): Promise<void> {
     if (!item.archivedAt) {
       return;
     }
+    if (!item.archivedOn) {
+      throw new Error("The archived manual item is missing its final active date.");
+    }
+    assertLifecycleChangeOpenInDatabase(
+      transaction,
+      item.archivedOn,
+      "restoring this manual item",
+    );
     transaction
       .update(manualItems)
       .set({ archivedAt: null, archivedOn: null, updatedAt: sql`CURRENT_TIMESTAMP` })
@@ -746,6 +787,19 @@ export async function setOutsideScopeTransferManualItem(input: {
     ) {
       throw new DomainError("Choose a posted outside-scope transfer.");
     }
+    const effectiveDate = transaction
+      .select({ effectiveDate: journalEntries.effectiveDate })
+      .from(journalEntries)
+      .where(eq(journalEntries.id, resolution.reclassificationJournalEntryId))
+      .get()?.effectiveDate;
+    if (!effectiveDate) {
+      throw new Error("The outside-scope transfer is missing its effective date.");
+    }
+    assertLifecycleChangeOpenInDatabase(
+      transaction,
+      effectiveDate,
+      "changing its manual-valuation link",
+    );
     if (input.manualItemId !== null) {
       loadActiveManualItem(transaction, input.manualItemId);
     }

@@ -446,7 +446,7 @@ export function NetWorthWorkspace({
             turning valuation changes into income or expense.
           </p>
         </div>
-        <form className="coverage-month-form">
+        <form action="/net-worth" className="coverage-month-form" method="get">
           <label htmlFor="net-worth-month">Target month</label>
           <input
             defaultValue={snapshot.targetMonth}

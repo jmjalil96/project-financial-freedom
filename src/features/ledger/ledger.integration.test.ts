@@ -90,7 +90,7 @@ describe("Phase 2 ledger foundation", () => {
     ]);
     expect(categoryCount.count).toBe(15);
     expect(categoryLedgerCount.count).toBe(15);
-    expect(context.health.appliedMigrations).toBe(15);
+    expect(context.health.appliedMigrations).toBe(16);
   });
 
   it("creates asset and liability opening positions without income or expense", async () => {

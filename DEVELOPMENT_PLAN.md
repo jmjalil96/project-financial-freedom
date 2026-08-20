@@ -571,7 +571,7 @@ Complete the central monthly-review experience.
 Implement:
 
 - One target per expense category and calendar month.
-- Copy previous month.
+- Copy previous month into missing targets while preserving targets already chosen.
 - Edit future or open-month budgets.
 - Planned versus actual.
 - No rollover.
@@ -609,6 +609,10 @@ Closing creates an immutable revision containing:
 
 A late transaction affecting a closed month requires explicit reopening. The previous revision remains available for audit, and later months become provisional until recalculated.
 
+Evidence dated before a closed month also requires reopening when it would change that
+month's account balances, valuation selection, coverage, or net worth. The earliest
+affected closed month and every later closed month are reopened together.
+
 ### Core Reports
 
 Produce:
@@ -625,6 +629,10 @@ Produce:
 - Missing or stale information.
 
 Every aggregate must drill down to transactions or valuation records.
+
+Savings is income minus expenses. The savings rate is savings divided by income and is
+unavailable when monthly income is zero or negative. Closed reports store the rate in
+basis points alongside their source-backed totals.
 
 ### Exit Criteria
 
@@ -659,6 +667,10 @@ Show:
 - Outstanding review tasks.
 - Stale valuations.
 
+The latest active close is the trusted dashboard month. The current calendar month is
+always shown separately as provisional, including its live readiness tasks. Before the
+first close, the current provisional report is the dashboard focus.
+
 ### Insights
 
 Use deterministic calculations rather than AI:
@@ -667,12 +679,31 @@ Use deterministic calculations rather than AI:
 - Largest month-over-month increases.
 - New merchants.
 - Categories over budget.
-- Repeated descriptions that may be subscriptions.
+- Repeated descriptions across recent months, without automatically calling them
+  subscriptions.
 - Income changes.
 - Debt increasing or decreasing.
 - Net-worth change explained by cash flow versus valuation changes.
 
 Insights should state facts without judgment.
+
+Merchant facts use user-normalized imported merchant names when present and otherwise
+the immutable source merchant. A merchant is "new" only when it has no earlier posted
+expense evidence. Repeated descriptions are normalized exact matches found in at least
+two of the trailing six report months; repetition is evidence, not a subscription
+classification.
+
+The net-worth bridge must reconcile exactly:
+
+```text
+net-worth change = current-month savings
+                 + manual-value movement
+                 + other balance-sheet movement
+```
+
+The remaining balance-sheet movement is labeled honestly rather than attributed to a
+category. It may contain opening positions, tracked-account balance adjustments, or
+other source-backed movements outside income, expense, and manual valuations.
 
 Examples:
 
@@ -698,6 +729,8 @@ Add:
 - No dashboard value lacks source traceability.
 - Incomplete information is never presented as final.
 - A complete monthly review can be performed without navigating through database-oriented terminology.
+- Repeated or first-seen activity is presented as a source fact, never an inferred
+  intent or recurring commitment.
 
 ---
 

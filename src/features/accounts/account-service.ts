@@ -21,6 +21,7 @@ import { DomainError } from "@/domain/errors";
 import { sumMinorUnits } from "@/domain/money";
 import { normalizeManualItemName } from "@/domain/net-worth";
 import { recordAuditEvent } from "@/features/audit/audit-service";
+import { assertLifecycleChangeOpenInDatabase } from "@/features/month-close/month-lock-service";
 import { postJournalEntryWithinTransaction } from "@/features/ledger/ledger-service";
 import { findBaseCurrency } from "@/features/settings/settings-repository";
 
@@ -60,6 +61,11 @@ export async function createFinancialAccount(input: {
   }
 
   return db.transaction((transaction) => {
+    assertLifecycleChangeOpenInDatabase(
+      transaction,
+      openingDate,
+      "starting this account's history",
+    );
     const currency = findBaseCurrency(transaction);
 
     if (!currency) {
@@ -226,6 +232,12 @@ export async function archiveFinancialAccount(
       return;
     }
 
+    assertLifecycleChangeOpenInDatabase(
+      transaction,
+      archivedOn,
+      "archiving this account",
+    );
+
     if (archivedOn < account.openingDate) {
       throw new DomainError(
         `The account closing date cannot be before its opening date (${account.openingDate}).`,
@@ -322,6 +334,7 @@ export async function restoreFinancialAccount(
         id: financialAccounts.id,
         name: financialAccounts.name,
         archivedAt: financialAccounts.archivedAt,
+        archivedOn: financialAccounts.archivedOn,
       })
       .from(financialAccounts)
       .where(eq(financialAccounts.id, financialAccountId))
@@ -334,6 +347,15 @@ export async function restoreFinancialAccount(
     if (!account.archivedAt) {
       return;
     }
+
+    if (!account.archivedOn) {
+      throw new Error("The archived account is missing its final active date.");
+    }
+    assertLifecycleChangeOpenInDatabase(
+      transaction,
+      account.archivedOn,
+      "restoring this account",
+    );
 
     transaction
       .update(financialAccounts)

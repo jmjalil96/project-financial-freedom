@@ -2,6 +2,7 @@ import { lte } from "drizzle-orm";
 
 import { getDatabaseContext } from "@/db/client";
 import { financialAccounts, importBatches } from "@/db/schema";
+import type { AppDatabase, AppTransaction } from "@/db/types";
 import { getCalendarMonthBounds } from "@/domain/calendar-date";
 import {
   evaluateAccountCoverage,
@@ -20,11 +21,12 @@ export type MonthCoverageSummary = {
   accounts: AccountCoverageResult[];
 };
 
-export async function getMonthCoverage(
+export function getMonthCoverageInDatabase(
+  db: AppDatabase | AppTransaction,
   targetMonth: string,
-): Promise<MonthCoverageSummary> {
+  priorClosedMonthEnd?: string | null,
+): MonthCoverageSummary {
   const month = getCalendarMonthBounds(targetMonth);
-  const { db } = await getDatabaseContext();
   const accounts = db
     .select({
       id: financialAccounts.id,
@@ -86,6 +88,7 @@ export async function getMonthCoverage(
       },
       targetMonth,
       statements: statementsByAccount.get(account.id) ?? [],
+      priorClosedMonthEnd,
     });
   });
   const applicableRequired = results.filter(
@@ -105,4 +108,11 @@ export async function getMonthCoverage(
     isCoverageComplete: applicableRequired.length === completeAccountCount,
     accounts: results,
   };
+}
+
+export async function getMonthCoverage(
+  targetMonth: string,
+): Promise<MonthCoverageSummary> {
+  const { db } = await getDatabaseContext();
+  return getMonthCoverageInDatabase(db, targetMonth);
 }

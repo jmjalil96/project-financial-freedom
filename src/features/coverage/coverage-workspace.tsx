@@ -157,7 +157,7 @@ export function CoverageWorkspace({ summary }: { summary: MonthCoverageSummary }
             overlap.
           </p>
         </div>
-        <form className="coverage-month-form">
+        <form action="/coverage" className="coverage-month-form" method="get">
           <label htmlFor="coverage-month">Target month</label>
           <input
             defaultValue={summary.targetMonth}

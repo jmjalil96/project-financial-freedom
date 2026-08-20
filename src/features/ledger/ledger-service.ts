@@ -15,6 +15,7 @@ import { calendarDateSchema } from "@/domain/calendar-date";
 import { DomainError } from "@/domain/errors";
 import { sumMinorUnits } from "@/domain/money";
 import { recordAuditEvent } from "@/features/audit/audit-service";
+import { assertLifecycleChangeOpenInDatabase } from "@/features/month-close/month-lock-service";
 
 export type JournalSourceType = "import" | "manual" | "opening_balance" | "system";
 
@@ -88,6 +89,12 @@ export function postJournalEntryWithinTransaction(
   if (!description) {
     throw new DomainError("A journal entry requires a description.");
   }
+
+  assertLifecycleChangeOpenInDatabase(
+    transaction,
+    effectiveDate,
+    "posting or correcting ledger activity",
+  );
   if ((input.sourceType === "import") !== (input.importSourceRowId !== undefined)) {
     throw new DomainError(
       "Imported journal entries require exactly one imported source row.",

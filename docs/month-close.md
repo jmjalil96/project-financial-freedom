@@ -41,9 +41,15 @@ Provisional reports may be displayed, but they must identify:
 
 A month is ready when every closing gate passes. Readiness is calculated from evidence and decisions rather than from a hardcoded calendar date.
 
+The final calendar day must also have passed. A current or future calendar month is
+never treated as complete merely because its known accounts currently have coverage.
+
 ### Closed
 
 A closed month has an immutable close revision containing the evidence and values used to produce its report.
+
+The live close state points to the latest revision. The revision itself is never
+updated or deleted.
 
 ### Reopened
 
@@ -178,6 +184,11 @@ Closing records an immutable revision with:
 
 The stored revision must allow the application to reproduce what was reported at close time.
 
+Version 1 snapshots record the highest posted journal-entry identifier visible at the
+instant of close, or an explicit empty-ledger cutoff. The snapshot JSON stores the
+complete report, finalized statement manifest, account coverage proof, and warnings;
+the primary revision fields retain the main totals for indexed history views.
+
 ## Late Transactions and Corrections
 
 A late transaction may have an effective date in a closed month. It must not silently alter that report.
@@ -193,6 +204,15 @@ The workflow is:
 7. Close the months again in chronological order.
 
 If the new row is a duplicate of already accepted activity, resolving it as a duplicate does not require a financial correction, but the source decision remains traceable.
+
+Because an earlier entry can change later account balances, the lock is based on the
+first closed month affected rather than only the entry's own month. The same rule
+applies to earlier-dated manual valuations, account or manual-item start and archive
+dates, and outside-scope-transfer valuation links. Reopening requires a recorded reason.
+
+Closing resumes chronologically. A later reopened month cannot close while an earlier
+reopened month remains unresolved, and an earlier month cannot be inserted underneath
+a still-closed later revision.
 
 ## Account and Item Lifecycle
 

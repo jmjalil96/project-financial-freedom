@@ -21,6 +21,9 @@ export type AuditAction =
   | "manual_item.archived"
   | "manual_item.restored"
   | "manual_item.valuation_recorded"
+  | "budget.target_set"
+  | "month.closed"
+  | "month.reopened"
   | "review.batch_finalized"
   | "journal.posted"
   | "journal.reversed";
@@ -37,6 +40,8 @@ export function recordAuditEvent(
       | "import_row"
       | "manual_item"
       | "manual_item_valuation"
+      | "monthly_budget"
+      | "month_close_revision"
       | "duplicate_candidate"
       | "journal_entry";
     entityId: number;
