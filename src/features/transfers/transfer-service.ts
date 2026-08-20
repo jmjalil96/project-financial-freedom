@@ -11,6 +11,7 @@ import {
   importTransferResolutions,
   journalEntries,
   ledgerAccounts,
+  manualItems,
   postings,
 } from "@/db/schema";
 import type { AppDatabase, AppTransaction } from "@/db/types";
@@ -43,6 +44,7 @@ export type TransferWorkspaceRow = TransferCandidateSource & {
     counterpartImportRowId: number | null;
     counterpartAccountName: string | null;
     counterpartDescription: string | null;
+    manualItemName: string | null;
     updatedAt: string;
   } | null;
   candidates: TransferCandidateHint[];
@@ -103,7 +105,22 @@ export async function listTransferWorkspaceRows(): Promise<TransferWorkspaceRow[
     confirmedType: "transfer",
   }));
   const candidatesByRow = deriveTransferCandidates(sources);
-  const resolutions = db.select().from(importTransferResolutions).all();
+  const resolutions = db
+    .select({
+      id: importTransferResolutions.id,
+      importRowId: importTransferResolutions.importRowId,
+      classification: importTransferResolutions.classification,
+      counterpartImportRowId: importTransferResolutions.counterpartImportRowId,
+      reclassificationJournalEntryId:
+        importTransferResolutions.reclassificationJournalEntryId,
+      manualItemId: importTransferResolutions.manualItemId,
+      manualItemName: manualItems.name,
+      createdAt: importTransferResolutions.createdAt,
+      updatedAt: importTransferResolutions.updatedAt,
+    })
+    .from(importTransferResolutions)
+    .leftJoin(manualItems, eq(manualItems.id, importTransferResolutions.manualItemId))
+    .all();
   const sourceById = new Map(sources.map((source) => [source.id, source]));
   const resolutionByRow = new Map(
     resolutions.map((resolution) => [resolution.importRowId, resolution]),
@@ -131,6 +148,7 @@ export async function listTransferWorkspaceRows(): Promise<TransferWorkspaceRow[
             counterpartImportRowId: resolution.counterpartImportRowId,
             counterpartAccountName: counterpart?.accountName ?? null,
             counterpartDescription: counterpart?.description ?? null,
+            manualItemName: resolution.manualItemName,
             updatedAt: resolution.updatedAt,
           }
         : null,

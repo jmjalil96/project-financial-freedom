@@ -6,6 +6,7 @@ import {
   importBatches,
   journalEntries,
   ledgerAccounts,
+  manualItems,
   postings,
 } from "@/db/schema";
 import {
@@ -18,6 +19,7 @@ import { calendarDateSchema, getLocalCalendarDate } from "@/domain/calendar-date
 import { baseCurrencySchema, type BaseCurrency } from "@/domain/currencies";
 import { DomainError } from "@/domain/errors";
 import { sumMinorUnits } from "@/domain/money";
+import { normalizeManualItemName } from "@/domain/net-worth";
 import { recordAuditEvent } from "@/features/audit/audit-service";
 import { postJournalEntryWithinTransaction } from "@/features/ledger/ledger-service";
 import { findBaseCurrency } from "@/features/settings/settings-repository";
@@ -65,6 +67,19 @@ export async function createFinancialAccount(input: {
     }
 
     const accountType = getFinancialAccountType(type);
+    const normalizedName = normalizeManualItemName(name);
+    const conflictingManualItem = transaction
+      .select({ name: manualItems.name })
+      .from(manualItems)
+      .all()
+      .find(
+        (manualItem) => normalizeManualItemName(manualItem.name) === normalizedName,
+      );
+    if (conflictingManualItem) {
+      throw new DomainError(
+        `${conflictingManualItem.name} is already tracked as a manual item. Use one tracking method for each financial item.`,
+      );
+    }
     const accountResult = transaction
       .insert(financialAccounts)
       .values({

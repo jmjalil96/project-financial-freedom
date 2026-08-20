@@ -55,7 +55,7 @@ describe("initializeDatabase", () => {
       quickCheck: "ok",
       foreignKeys: true,
       journalMode: "wal",
-      appliedMigrations: 14,
+      appliedMigrations: 15,
     });
     expect(statSync(paths.dataDirectory).mode & 0o777).toBe(0o700);
     expect(statSync(paths.databasePath).mode & 0o777).toBe(0o600);
@@ -135,7 +135,7 @@ describe("initializeDatabase", () => {
       .get() as { count: number };
 
     expect(upgradedContext.backupCreated).not.toBeNull();
-    expect(upgradedContext.health.appliedMigrations).toBe(14);
+    expect(upgradedContext.health.appliedMigrations).toBe(15);
     expect(settings.base_currency).toBe("EUR");
     expect(categories.count).toBe(15);
     expect(
@@ -231,7 +231,7 @@ describe("initializeDatabase", () => {
       .get() as { sql: string };
 
     expect(upgradedContext.backupCreated).not.toBeNull();
-    expect(upgradedContext.health.appliedMigrations).toBe(14);
+    expect(upgradedContext.health.appliedMigrations).toBe(15);
     expect(decisionTable.sql).toContain('"exclusion_reason" IS NOT NULL');
     expect(decisionTable.sql).toContain(
       `strftime('%Y-%m-%d', "import_row_decisions"."effective_date", '+0 days') IS NOT NULL`,
@@ -365,7 +365,7 @@ describe("initializeDatabase", () => {
       )
       .all();
 
-    expect(upgradedContext.health.appliedMigrations).toBe(14);
+    expect(upgradedContext.health.appliedMigrations).toBe(15);
     expect(resolution.journalEntryId).toBeGreaterThan(1);
     expect(balances).toEqual([
       { systemKey: "outside_scope_transfers", amountMinor: 1000 },

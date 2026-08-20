@@ -537,9 +537,12 @@ Each valuation has:
 Rules:
 
 - Never track the same item as both a ledger account and a manual item.
-- Old values can be carried forward but are visibly marked stale.
+- Old values can be carried forward with acknowledgment, remain visibly marked as carried, and become stale again under the selected frequency.
 - Valuation changes are not automatically treated as income or spending.
 - Deleting an item means archiving it; valuation history remains.
+- Corrections supersede rather than edit a valuation, and explicit carry-forwards create new dated evidence.
+- Calendar-month freshness follows the selected monthly, quarterly, annual, or as-needed frequency.
+- Outside-scope transfers can link to the manual item that now represents that owned value; the transfer amount remains in net worth until an applicable valuation exists, then yields to that valuation to prevent double-counting.
 
 Calculate month-end net worth from:
 

@@ -16,6 +16,11 @@ export type AuditAction =
   | "review.duplicate_candidate_dismissed"
   | "transfer.resolution_saved"
   | "transfer.match_confirmed"
+  | "transfer.manual_item_link_changed"
+  | "manual_item.created"
+  | "manual_item.archived"
+  | "manual_item.restored"
+  | "manual_item.valuation_recorded"
   | "review.batch_finalized"
   | "journal.posted"
   | "journal.reversed";
@@ -30,6 +35,8 @@ export function recordAuditEvent(
       | "category"
       | "import_batch"
       | "import_row"
+      | "manual_item"
+      | "manual_item_valuation"
       | "duplicate_candidate"
       | "journal_entry";
     entityId: number;

@@ -6,7 +6,7 @@ The product goal is documented in [PRODUCT.md](PRODUCT.md), and implementation p
 
 ## Current Status
 
-Phases 1 through 5 provide:
+Phases 1 through 6 provide:
 
 - A local-only Next.js application bound to `127.0.0.1` with a loopback Host allowlist.
 - Base-currency onboarding that freezes once financial data exists.
@@ -37,6 +37,12 @@ Phases 1 through 5 provide:
   cycles, account active dates, and optional month-close participation.
 - A coverage workspace and imported-ledger links that retain effective, posted, and
   statement dates for their distinct purposes.
+- Manual assets and liabilities with active dates, valuation frequencies, immutable
+  dated history, explicit carry-forwards, and preserved same-date corrections.
+- Reproducible month-end net worth, prior-month change, debt visibility, valuation
+  freshness, and component-level source evidence.
+- Explicit links from outside-scope transfers to manual valuations that prevent the
+  same owned value from being counted twice.
 
 Finalizing a reviewed statement now seals its evidence and posts every accepted row in
 the same database transaction. Older Phase 4-only finalized statements can be posted

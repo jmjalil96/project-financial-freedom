@@ -273,7 +273,13 @@ Property, vehicles, investments tracked only by value, and debts without transac
 - A stale value may be carried forward only with explicit acknowledgment.
 - Valuation changes do not become income or expense automatically.
 - The same financial item must not be tracked both as a ledger account and a manual item.
-- If a later phase introduces a manual valuation for an account previously represented by the outside-scope-transfer balance, that balance must be explicitly settled or linked so the same owned value is not counted twice.
+- Manual item and tracked-account names use one normalized identity namespace so the same item cannot accidentally be created in both systems.
+- Valuation frequency is `monthly`, `quarterly`, `annual`, or `as needed`. At month-end, monthly evidence must come from that calendar month, quarterly evidence from that month or the prior two, and annual evidence from that month or the prior eleven. As-needed values never become automatically stale, but their source date remains visible.
+- Carry-forward creates a new dated valuation with the prior signed value and a required acknowledgment. It never retimestamps the earlier evidence.
+- Recording another value on the same effective date creates an immutable correction that supersedes the prior record. Earlier records remain in valuation history.
+- A manual item contributes to month-end net worth only when it was active at that month-end and has a nonsuperseded valuation effective on or before that date.
+- An outside-scope transfer may be explicitly linked to the manual item representing the same owned account. The transfer balance remains included until that item has an applicable valuation; once it does, the linked transfer amount is excluded so the absolute valuation and transfer movement are not counted twice.
+- Archived items retain valuation history and remain reproducible before their final active date, but are excluded from later month-ends.
 
 ## Immutability and Corrections
 
@@ -297,6 +303,7 @@ Property, vehicles, investments tracked only by value, and debts without transac
 - Transfers and opening balances are excluded from income, expense, and savings calculations.
 - Refund postings reduce expense totals in their confirmed category.
 - Net worth uses asset, liability, transfer-clearing, and outside-scope-transfer balances plus dated manual valuations.
+- Month-end net worth uses only posted ledger activity effective on or before that month-end and the latest valid manual valuation effective on or before the same date.
 - A nonzero transfer-clearing balance must be explained by explicit in-transit transfers.
 - The outside-scope-transfer balance is shown separately and must trace to explicit owned-but-untracked classifications.
 - Provisional months must be labeled as provisional.

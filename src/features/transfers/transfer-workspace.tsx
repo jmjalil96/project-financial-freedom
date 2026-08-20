@@ -86,6 +86,9 @@ function TransferResolutionCard({ row }: { row: TransferWorkspaceRow }) {
                     {row.resolution.counterpartDescription}
                   </p>
                 ) : null}
+                {row.resolution.manualItemName ? (
+                  <p>Represented by the {row.resolution.manualItemName} valuation.</p>
+                ) : null}
               </div>
             </div>
             <form onSubmit={clear.onSubmit}>

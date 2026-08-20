@@ -4484,3 +4484,549 @@ textarea:focus-visible {
     animation: none;
   }
 }
+
+.net-worth-workspace {
+  display: grid;
+  gap: 28px;
+}
+
+.net-worth-hero {
+  align-items: end;
+  background:
+    radial-gradient(circle at 12% 15%, rgba(242, 184, 75, 0.17), transparent 32%),
+    var(--forest);
+  border-radius: var(--radius-lg);
+  color: white;
+  display: grid;
+  gap: 36px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 34px;
+}
+
+.net-worth-hero h1 {
+  font-size: clamp(32px, 5vw, 56px);
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+  margin: 0;
+}
+
+.net-worth-hero > div > p:last-child {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 17px 0 0;
+  max-width: 650px;
+}
+
+.net-worth-hero .eyebrow {
+  color: #98d7c1;
+}
+
+.net-worth-hero .coverage-month-form {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.net-worth-hero .coverage-month-form label {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.net-worth-summary {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1.35fr 1fr 1fr;
+}
+
+.net-worth-summary article {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 7px;
+  padding: 22px;
+}
+
+.net-worth-summary__primary {
+  background: linear-gradient(135deg, #fff 0%, #eef6f2 100%) !important;
+  border-color: rgba(23, 107, 82, 0.28) !important;
+}
+
+.net-worth-summary article > span {
+  color: var(--ink-soft);
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.net-worth-summary article > strong {
+  font-family: var(--font-data);
+  font-size: clamp(22px, 3vw, 35px);
+  letter-spacing: -0.055em;
+}
+
+.net-worth-summary article small {
+  align-items: center;
+  color: var(--ink-soft);
+  display: flex;
+  font-size: 10px;
+  gap: 4px;
+}
+
+.net-worth-summary article small[data-positive="true"] {
+  color: var(--signal);
+}
+
+.net-worth-readiness {
+  align-items: start;
+  background: #f8f1e3;
+  border: 1px solid #ead6ae;
+  border-radius: var(--radius-md);
+  color: #795a1d;
+  display: flex;
+  gap: 13px;
+  padding: 17px 19px;
+}
+
+.net-worth-readiness strong {
+  font-size: 13px;
+}
+
+.net-worth-readiness p {
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 5px 0 0;
+}
+
+.net-worth-components,
+.outside-scope-links {
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 25px;
+}
+
+.net-worth-component-list {
+  display: grid;
+  gap: 1px;
+}
+
+.net-worth-component-list > article {
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 13px;
+  grid-template-columns: auto 1fr auto;
+  padding: 14px 12px;
+}
+
+.net-worth-component-list > article:first-child {
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.net-worth-component-list > article:last-child {
+  border-bottom: 0;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.net-worth-component-list__icon,
+.manual-item-card__icon {
+  align-items: center;
+  background: var(--surface-muted);
+  border-radius: 50%;
+  color: var(--signal);
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.net-worth-component-list article > div {
+  display: grid;
+  gap: 4px;
+}
+
+.net-worth-component-list article > div strong {
+  font-size: 13px;
+}
+
+.net-worth-component-list article small {
+  color: var(--ink-soft);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.net-worth-component-list article > strong:last-child {
+  font-family: var(--font-data);
+  font-size: 14px;
+}
+
+.net-worth-component-list article > strong[data-negative="true"] {
+  color: var(--danger);
+}
+
+.net-worth-manual-layout {
+  align-items: start;
+  display: grid;
+  gap: 26px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.8fr);
+}
+
+.net-worth-manual-layout aside {
+  position: sticky;
+  top: 24px;
+}
+
+.manual-item-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.manual-item-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 20px;
+}
+
+.manual-item-card[data-status="missing"],
+.manual-item-card[data-status="stale"] {
+  border-color: #dfc78f;
+}
+
+.manual-item-card[data-archived="true"] {
+  background: rgba(255, 255, 255, 0.52);
+  opacity: 0.78;
+}
+
+.manual-item-card > header {
+  align-items: center;
+  display: grid;
+  gap: 11px;
+  grid-template-columns: auto 1fr auto;
+}
+
+.manual-item-card > header p {
+  color: var(--ink-soft);
+  font-family: var(--font-data);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  margin: 0 0 3px;
+  text-transform: uppercase;
+}
+
+.manual-item-card > header h3 {
+  font-size: 19px;
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+
+.manual-item-card__description {
+  color: var(--ink-soft);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 13px 0 0;
+}
+
+.manual-item-card__value {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+  margin-top: 18px;
+  padding-bottom: 16px;
+}
+
+.manual-item-card__value span,
+.manual-item-card__value small {
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
+.manual-item-card__value strong {
+  font-family: var(--font-data);
+  font-size: 24px;
+  letter-spacing: -0.045em;
+}
+
+.manual-item-card__evidence {
+  align-items: start;
+  color: var(--signal);
+  display: flex;
+  font-size: 10px;
+  gap: 7px;
+  line-height: 1.45;
+  padding: 12px 0;
+}
+
+.manual-item-card__details {
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+  padding-top: 12px;
+}
+
+.manual-item-card__details summary {
+  color: var(--signal);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.manual-item-history {
+  border-top: 1px solid var(--line);
+  padding: 11px 0;
+}
+
+.manual-item-history summary {
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.manual-item-history summary span {
+  background: var(--surface-muted);
+  border-radius: 999px;
+  color: var(--ink);
+  margin-left: 4px;
+  padding: 2px 6px;
+}
+
+.manual-item-history ol {
+  display: grid;
+  gap: 7px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.manual-item-history li {
+  background: var(--surface-muted);
+  border-radius: 6px;
+  display: grid;
+  gap: 4px;
+  padding: 9px;
+}
+
+.manual-item-history li[data-superseded="true"] {
+  opacity: 0.62;
+}
+
+.manual-item-history li > div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.manual-item-history li strong {
+  font-family: var(--font-data);
+  font-size: 11px;
+}
+
+.manual-item-history li span,
+.manual-item-history li small,
+.manual-item-history li p {
+  color: var(--ink-soft);
+  font-size: 9px;
+}
+
+.manual-item-history li p {
+  line-height: 1.4;
+  margin: 0;
+}
+
+.manual-valuation-form,
+.manual-carry-form,
+.manual-item-archive {
+  margin-top: 13px;
+}
+
+.manual-valuation-form__grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.manual-valuation-form label,
+.manual-carry-form label,
+.manual-item-archive label,
+.outside-scope-link-row label {
+  display: grid;
+  gap: 5px;
+}
+
+.manual-valuation-form label > span,
+.manual-carry-form label > span,
+.manual-item-archive label > span,
+.outside-scope-link-row label > span {
+  color: var(--ink-soft);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.manual-valuation-form input,
+.manual-carry-form input,
+.manual-item-archive input,
+.outside-scope-link-row select {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  min-height: 36px;
+  padding: 0 9px;
+}
+
+.manual-valuation-form__note {
+  grid-column: 1 / -1;
+}
+
+.manual-valuation-form .secondary-button {
+  margin-top: 10px;
+}
+
+.manual-carry-form {
+  align-items: end;
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 135px 1fr auto;
+  padding: 10px;
+}
+
+.manual-carry-form .form-message {
+  grid-column: 1 / -1;
+}
+
+.manual-item-archive {
+  align-items: end;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 13px;
+}
+
+.manual-item-archive input {
+  min-height: 30px;
+}
+
+.manual-item-card__archived {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.manual-item-card__archived > span {
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
+.outside-scope-links__intro {
+  color: var(--ink-soft);
+  font-size: 11px;
+  line-height: 1.55;
+  margin: -4px 0 18px;
+  max-width: 760px;
+}
+
+.outside-scope-link-list {
+  display: grid;
+  gap: 10px;
+}
+
+.outside-scope-link-row {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, auto);
+  padding: 14px;
+}
+
+.outside-scope-link-row > div {
+  display: grid;
+  gap: 3px;
+}
+
+.outside-scope-link-row > div span,
+.outside-scope-link-row > div small {
+  color: var(--ink-soft);
+  font-size: 9px;
+}
+
+.outside-scope-link-row > div strong {
+  font-size: 12px;
+}
+
+.outside-scope-link-row form {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(180px, 1fr) auto;
+}
+
+.outside-scope-link-row .form-message {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1080px) {
+  .net-worth-summary,
+  .net-worth-manual-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .net-worth-manual-layout aside {
+    position: static;
+  }
+}
+
+@media (max-width: 820px) {
+  .net-worth-hero,
+  .outside-scope-link-row {
+    grid-template-columns: 1fr;
+  }
+
+  .net-worth-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .net-worth-hero,
+  .net-worth-components,
+  .outside-scope-links {
+    padding: 20px;
+  }
+
+  .manual-item-card > header,
+  .manual-valuation-form__grid,
+  .manual-carry-form,
+  .outside-scope-link-row form {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-item-card__icon {
+    display: none;
+  }
+
+  .manual-item-card > header .type-chip,
+  .outside-scope-link-row form .secondary-button {
+    justify-self: start;
+  }
+
+  .manual-valuation-form__note,
+  .manual-carry-form .form-message,
+  .outside-scope-link-row .form-message {
+    grid-column: 1;
+  }
+
+  .manual-item-archive {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

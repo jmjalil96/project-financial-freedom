@@ -93,6 +93,103 @@ export const categories = sqliteTable(
   ],
 );
 
+export const manualItems = sqliteTable(
+  "manual_items",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    normalizedName: text("normalized_name").notNull(),
+    description: text("description"),
+    kind: text("kind").notNull(),
+    openingDate: text("opening_date").notNull(),
+    valuationFrequency: text("valuation_frequency").notNull(),
+    archivedAt: text("archived_at"),
+    archivedOn: text("archived_on"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex("manual_items_normalized_name_unique").on(table.normalizedName),
+    index("manual_items_kind_archived_index").on(table.kind, table.archivedAt),
+    check("manual_items_name_not_blank", sql`length(trim(${table.name})) > 0`),
+    check(
+      "manual_items_normalized_name_not_blank",
+      sql`length(trim(${table.normalizedName})) > 0`,
+    ),
+    check("manual_items_kind", sql`${table.kind} IN ('asset', 'liability')`),
+    check("manual_items_opening_date", sql`${table.openingDate} GLOB '????-??-??'`),
+    check(
+      "manual_items_valuation_frequency",
+      sql`${table.valuationFrequency} IN ('monthly', 'quarterly', 'annual', 'ad_hoc')`,
+    ),
+    check(
+      "manual_items_archived_on",
+      sql`${table.archivedOn} IS NULL OR (
+        ${table.archivedAt} IS NOT NULL
+        AND ${table.archivedOn} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+        AND strftime('%Y-%m-%d', ${table.archivedOn}, '+0 days') = ${table.archivedOn}
+        AND ${table.archivedOn} >= ${table.openingDate}
+      )`,
+    ),
+  ],
+);
+
+export const manualItemValuations = sqliteTable(
+  "manual_item_valuations",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    manualItemId: integer("manual_item_id")
+      .notNull()
+      .references(() => manualItems.id, { onDelete: "restrict" }),
+    effectiveDate: text("effective_date").notNull(),
+    valueMinor: integer("value_minor").notNull(),
+    sourceNote: text("source_note").notNull(),
+    origin: text("origin").notNull(),
+    carriedForwardFromValuationId: integer(
+      "carried_forward_from_valuation_id",
+    ).references((): AnySQLiteColumn => manualItemValuations.id, {
+      onDelete: "restrict",
+    }),
+    supersedesValuationId: integer("supersedes_valuation_id").references(
+      (): AnySQLiteColumn => manualItemValuations.id,
+      { onDelete: "restrict" },
+    ),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("manual_item_valuations_item_date_index").on(
+      table.manualItemId,
+      table.effectiveDate,
+    ),
+    uniqueIndex("manual_item_valuations_supersedes_unique").on(
+      table.supersedesValuationId,
+    ),
+    check(
+      "manual_item_valuations_effective_date",
+      sql`${table.effectiveDate} GLOB '????-??-??'`,
+    ),
+    check(
+      "manual_item_valuations_source_note_not_blank",
+      sql`length(trim(${table.sourceNote})) > 0`,
+    ),
+    check(
+      "manual_item_valuations_origin",
+      sql`${table.origin} IN ('manual', 'imported')`,
+    ),
+    check(
+      "manual_item_valuations_not_self_referential",
+      sql`(${table.carriedForwardFromValuationId} IS NULL OR ${table.carriedForwardFromValuationId} != ${table.id})
+        AND (${table.supersedesValuationId} IS NULL OR ${table.supersedesValuationId} != ${table.id})`,
+    ),
+  ],
+);
+
 export const importBatches = sqliteTable(
   "import_batches",
   {
@@ -415,6 +512,9 @@ export const importTransferResolutions = sqliteTable(
     reclassificationJournalEntryId: integer(
       "reclassification_journal_entry_id",
     ).references(() => journalEntries.id, { onDelete: "restrict" }),
+    manualItemId: integer("manual_item_id").references(() => manualItems.id, {
+      onDelete: "restrict",
+    }),
     createdAt: text("created_at")
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
@@ -431,6 +531,7 @@ export const importTransferResolutions = sqliteTable(
       table.reclassificationJournalEntryId,
     ),
     index("import_transfer_resolutions_classification_index").on(table.classification),
+    index("import_transfer_resolutions_manual_item_index").on(table.manualItemId),
     check(
       "import_transfer_resolutions_classification",
       sql`${table.classification} IN ('owned_account', 'card_payment', 'external_out', 'external_in', 'in_transit')`,

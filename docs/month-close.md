@@ -131,6 +131,8 @@ The target month may close only when all of the following are true.
 - Every active manual asset and liability has a valuation applicable to month-end.
 - A prior valuation may be carried forward only with explicit acknowledgment.
 - Stale carried values remain visibly marked in the report.
+- Monthly, quarterly, and annual freshness use calendar-month windows defined in the accounting rules; as-needed values retain a visible age without becoming automatically stale.
+- Outside-scope transfers linked to a valued manual item are excluded from the separate transfer balance so the same owned value cannot enter net worth twice.
 
 ### Budgets
 

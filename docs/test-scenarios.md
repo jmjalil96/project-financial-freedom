@@ -570,6 +570,40 @@ closing signed loan balance:  -9550.00
 
 ---
 
+## Scenario 15: Manual Valuation and Outside-Scope Transfer
+
+### Starting Position
+
+- Checking ledger balance: `1000.00`.
+- A private investment is owned but is not a transaction-tracked financial account.
+- A checking transfer of `-100.00` to that investment is classified as outside scope.
+
+Before an absolute investment valuation exists:
+
+- Checking: `900.00`.
+- Outside-scope-transfer balance: `100.00`.
+- Reproducible net worth: `1000.00`.
+
+### Manual Evidence
+
+- Manual item: Private investment.
+- Classification: asset.
+- August valuation: `1100.00`.
+- Source note: `August partner statement`.
+- The outside-scope transfer is explicitly linked to this item.
+
+### Expected Result
+
+- The manual investment contributes `1100.00` at August month-end.
+- The linked `100.00` transfer no longer contributes separately once that applicable valuation exists.
+- Checking plus the manual valuation produces net worth of `2000.00`, not `2100.00`.
+- Before the valuation date, the outside-scope transfer remains included so value does not disappear.
+- A same-date correction creates a superseding valuation and preserves the earlier record.
+- Carrying the value forward requires a new date and an acknowledgment explaining why it still applies.
+- The valuation changes net worth but never income or expense.
+
+---
+
 ## Cross-Scenario Acceptance Rules
 
 All scenarios must satisfy:
@@ -586,6 +620,7 @@ All scenarios must satisfy:
 - An external classification means an owned account outside the tracked account set; it
   moves the amount out of transfer clearing through a linked, reversible system entry.
 - Accepted expenses are negative source activity, while accepted income and refunds are positive source activity.
+- Manual values use dated immutable evidence, and linked outside-scope transfers yield to an applicable absolute valuation rather than being counted twice.
 - Refunds reduce expenses rather than create income.
 - Duplicates never create a second economic event.
 - A later duplicate row points to an earlier accepted canonical row, and a canonical row referenced by a finalized batch remains accepted.
