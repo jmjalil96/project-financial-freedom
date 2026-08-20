@@ -1,5 +1,6 @@
-import { Database, FolderLock, ShieldCheck } from "lucide-react";
+import { ArchiveRestore, Database, FolderLock, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { getDatabaseContext } from "@/db/client";
 import { getCurrencyName } from "@/domain/currencies";
@@ -95,6 +96,21 @@ export default async function SettingsPage() {
               </p>
             ) : null}
           </div>
+        </article>
+
+        <article className="settings-row">
+          <div className="settings-row__icon">
+            <ArchiveRestore aria-hidden="true" size={21} />
+          </div>
+          <div>
+            <h2>Backups and exports</h2>
+            <p>
+              Create recovery points, download portable records, or inspect a restore.
+            </p>
+          </div>
+          <Link className="quiet-button" href="/settings/data">
+            Open data safety
+          </Link>
         </article>
       </section>
 

@@ -6,13 +6,14 @@ The product goal is documented in [PRODUCT.md](PRODUCT.md), and implementation p
 
 ## Current Status
 
-Phases 1 through 8 provide:
+Phases 1 through 9 provide:
 
 - A local-only Next.js application bound to `127.0.0.1` with a loopback Host allowlist.
 - Base-currency onboarding that freezes once financial data exists.
 - A generated and migrated SQLite database.
 - WAL mode, foreign-key enforcement, preflight integrity checks, and foreign-key checks.
-- Verified pre-migration backups.
+- Verified online backups before migrations, reopenings, corrections, and restores,
+  plus one automatic daily recovery point and recent/monthly retention.
 - A responsive application shell and navigation.
 - Isolated database support for tests.
 - Asset and liability accounts with balanced opening positions.
@@ -59,14 +60,16 @@ Phases 1 through 8 provide:
   first-seen merchants, repeated descriptions, and valuation freshness.
 - An exact net-worth bridge that reports cash flow, manual-value movement, and the
   remaining balance-sheet movement without inventing an explanation.
+- Exact downloadable SQLite snapshots, a versioned checksummed JSON export, verified
+  restore previews, confirmation, and rollback-protected database replacement.
 
 Finalizing a reviewed statement now seals its evidence and posts every accepted row in
 the same database transaction. Older Phase 4-only finalized statements can be posted
 once through the finalization receipt without reopening their locked decisions.
 
-The functional MVP workflow and its decision layer are complete through Phase 8:
-prepare the evidence, close a reproducible month, and use the resulting dashboard to
-understand what changed and what requires attention next.
+The usable local-first v1 is complete through Phase 9: prepare the evidence, close a
+reproducible month, understand what changed, and preserve or recover the complete
+financial record without sending it to another service.
 
 ## Run Locally
 
@@ -135,3 +138,8 @@ PFF_DATABASE_PATH=/path/to/private/finance.sqlite npm run dev
 
 Financial data and backups are stored outside the repository by default. When using an
 override, choose a private location and do not place it under version control.
+
+Open **Settings → Backups and exports** to create or download a verified snapshot,
+produce a portable JSON record, inspect retained backups, or perform a confirmed
+restore. The full procedure and failure-recovery notes are documented in
+[Recovery and Exports](docs/recovery.md).

@@ -16,6 +16,7 @@ import { DomainError } from "@/domain/errors";
 import { sumMinorUnits } from "@/domain/money";
 import { recordAuditEvent } from "@/features/audit/audit-service";
 import { assertLifecycleChangeOpenInDatabase } from "@/features/month-close/month-lock-service";
+import { createDatabaseBackup } from "@/server/database-backup";
 
 export type JournalSourceType = "import" | "manual" | "opening_balance" | "system";
 
@@ -195,12 +196,14 @@ export async function reverseJournalEntry(input: {
   journalEntryId: number;
   reason: string;
 }): Promise<number> {
-  const { db } = await getDatabaseContext();
+  const { db, paths, raw } = await getDatabaseContext();
   const reason = input.reason.trim();
 
   if (!reason) {
     throw new DomainError("A reversal requires a reason.");
   }
+
+  await createDatabaseBackup(raw, paths, "pre-correction");
 
   return db.transaction((transaction) => {
     const entry = transaction

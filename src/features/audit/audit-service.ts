@@ -24,6 +24,8 @@ export type AuditAction =
   | "budget.target_set"
   | "month.closed"
   | "month.reopened"
+  | "database.manual_backup_created"
+  | "database.restored"
   | "review.batch_finalized"
   | "journal.posted"
   | "journal.reversed";
@@ -42,6 +44,7 @@ export function recordAuditEvent(
       | "manual_item_valuation"
       | "monthly_budget"
       | "month_close_revision"
+      | "database"
       | "duplicate_candidate"
       | "journal_entry";
     entityId: number;

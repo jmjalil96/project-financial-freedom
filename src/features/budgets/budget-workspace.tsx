@@ -49,6 +49,10 @@ function BudgetTargetForm({
     setMonthlyBudgetAction,
     initialFormActionState,
   );
+  const plannedInputValue =
+    category.plannedMinor === null
+      ? ""
+      : minorUnitsToDecimalInput(category.plannedMinor, budget.currency);
   return (
     <form className="budget-target-form" onSubmit={onSubmit}>
       <input name="targetMonth" type="hidden" value={budget.targetMonth} />
@@ -59,13 +63,10 @@ function BudgetTargetForm({
           <span>{budget.currency}</span>
           <input
             aria-label={category.categoryName + " monthly target"}
-            defaultValue={
-              category.plannedMinor === null
-                ? ""
-                : minorUnitsToDecimalInput(category.plannedMinor, budget.currency)
-            }
+            defaultValue={plannedInputValue}
             disabled={!budget.isEditable || category.categoryArchivedAt !== null}
             inputMode="decimal"
+            key={`${budget.targetMonth}:${category.categoryId}:${plannedInputValue}`}
             min="0"
             name="amount"
             placeholder="Not set"

@@ -753,12 +753,17 @@ Implement:
 - Restore preview and confirmation.
 - Recovery documentation.
 
+The app retains the 14 newest snapshots plus the newest recovery point in each of the
+12 most recent represented months. A restore first stages and verifies the selected
+snapshot, creates a verified backup of the live database, and keeps an internal rollback
+copy until the restored database has migrated and passed startup health checks.
+
 ### Exports
 
 Provide:
 
 - Full SQLite snapshot for exact restoration.
-- Portable versioned CSV/JSON export.
+- Portable versioned JSON export.
 - Accounts.
 - Categories.
 - Transactions and postings.
@@ -768,6 +773,11 @@ Provide:
 - Checksums and base-currency metadata.
 
 Exports must clearly warn that they contain sensitive data.
+
+The JSON envelope includes every application table, the reporting currency, migration
+count, per-table SHA-256 checksums, and a checksum over the complete table payload. The
+SQLite download is created with the same online backup and verification path used by
+automatic recovery points.
 
 ### Testing
 

@@ -146,6 +146,61 @@ describe("initializeDatabase", () => {
     upgradedContext.raw.close();
   });
 
+  it("upgrades cleanly from every previously released migration boundary", async () => {
+    const currentJournal = JSON.parse(
+      readFileSync(join(process.cwd(), "drizzle", "meta", "_journal.json"), "utf8"),
+    ) as {
+      version: string;
+      dialect: string;
+      entries: Array<{
+        idx: number;
+        version: string;
+        when: number;
+        tag: string;
+        breakpoints: boolean;
+      }>;
+    };
+
+    for (let boundary = 1; boundary < currentJournal.entries.length; boundary += 1) {
+      const root = createTemporaryRoot();
+      const paths = createTestPaths(root);
+      const priorMigrations = join(root, `migrations-through-${boundary}`);
+      const priorMeta = join(priorMigrations, "meta");
+      const priorEntries = currentJournal.entries.slice(0, boundary);
+      mkdirSync(priorMeta, { recursive: true });
+      for (const entry of priorEntries) {
+        cpSync(
+          join(process.cwd(), "drizzle", `${entry.tag}.sql`),
+          join(priorMigrations, `${entry.tag}.sql`),
+        );
+      }
+      writeFileSync(
+        join(priorMeta, "_journal.json"),
+        `${JSON.stringify({ ...currentJournal, entries: priorEntries }, null, 2)}\n`,
+      );
+
+      const prior = await initializeDatabase({
+        paths,
+        migrationsFolder: priorMigrations,
+      });
+      prior.raw
+        .prepare("INSERT INTO app_settings (id, base_currency) VALUES (1, 'USD')")
+        .run();
+      prior.raw.close();
+
+      const upgraded = await initializeDatabase({ paths });
+      expect(upgraded.health.appliedMigrations).toBe(currentJournal.entries.length);
+      expect(upgraded.raw.pragma("foreign_key_check")).toEqual([]);
+      expect(
+        upgraded.raw
+          .prepare("SELECT base_currency FROM app_settings WHERE id = 1")
+          .get(),
+      ).toEqual({ base_currency: "USD" });
+      expect(upgraded.backupCreated).not.toBeNull();
+      upgraded.raw.close();
+    }
+  });
+
   it("preserves Phase 4 decisions while aligning their physical checks", async () => {
     const root = createTemporaryRoot();
     const paths = createTestPaths(root);

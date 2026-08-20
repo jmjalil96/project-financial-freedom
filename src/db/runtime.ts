@@ -8,7 +8,10 @@ import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { getAppliedMigrationCount, hasPendingMigrations } from "@/db/migration-state";
 import { ensureLedgerFoundation } from "@/db/seed";
 import * as schema from "@/db/schema";
-import { createDatabaseBackup } from "@/server/database-backup";
+import {
+  createDatabaseBackup,
+  ensureDailyDatabaseBackup,
+} from "@/server/database-backup";
 import { ensureDataDirectories, type DataPaths } from "@/server/data-paths";
 
 export type DatabaseHealth = {
@@ -26,6 +29,7 @@ export type DatabaseContext = {
   paths: DataPaths;
   health: DatabaseHealth;
   backupCreated: string | null;
+  dailyBackupCreated: string | null;
 };
 
 type InitializeDatabaseOptions = {
@@ -124,6 +128,9 @@ export async function initializeDatabase({
       ensureLedgerFoundation(db);
     }
     secureDatabaseFiles(paths.databasePath);
+    const dailyBackupCreated = databaseExisted
+      ? await ensureDailyDatabaseBackup(raw, paths)
+      : null;
 
     return {
       raw,
@@ -131,6 +138,7 @@ export async function initializeDatabase({
       paths,
       health: inspectDatabaseHealth(raw),
       backupCreated,
+      dailyBackupCreated,
     };
   } catch (error) {
     raw.close();

@@ -57,6 +57,40 @@ test("budgets, traces, closes, reopens, and preserves monthly revisions", async 
   await expect(budgetSummary.getByText("$100.00", { exact: true })).toBeVisible();
   await expect(budgetSummary.getByText("$25.00", { exact: true })).toBeVisible();
 
+  const budgetColumns = await page
+    .locator(".budget-category-list > article")
+    .evaluateAll((rows) =>
+      rows.map((row) => ({
+        actual:
+          row.querySelector(".budget-category-row__actual")?.getBoundingClientRect()
+            .left ?? 0,
+        remaining:
+          row.querySelector(".budget-category-row__remaining")?.getBoundingClientRect()
+            .left ?? 0,
+        target:
+          row.querySelector(".budget-target-form")?.getBoundingClientRect().left ?? 0,
+      })),
+    );
+  for (const column of ["actual", "remaining", "target"] as const) {
+    const positions = budgetColumns.map((row) => row[column]);
+    expect(Math.max(...positions) - Math.min(...positions)).toBeLessThan(1);
+  }
+  await expect(page.getByLabel("Groceries monthly target")).toHaveCSS(
+    "border-width",
+    "1px",
+  );
+
+  await page.goto("/budgets?month=2025-02");
+  const copyPreviousMonth = page.getByRole("button", {
+    name: "Copy previous month",
+  });
+  await expect(copyPreviousMonth).toHaveCSS("border-radius", "8px");
+  await copyPreviousMonth.click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "target was copied from 2025-01" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Groceries monthly target")).toHaveValue("100.00");
+
   await page.goto("/month-close?month=2025-01");
   await expect(
     page.getByRole("heading", { name: "2025-01 financial close" }),

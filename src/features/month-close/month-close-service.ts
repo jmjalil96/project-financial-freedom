@@ -27,6 +27,7 @@ import {
   getMonthlyReportInDatabase,
   type MonthlyReport,
 } from "@/features/reports/monthly-report-service";
+import { createDatabaseBackup } from "@/server/database-backup";
 
 type CloseDatabase = AppDatabase | AppTransaction;
 
@@ -706,7 +707,16 @@ export async function reopenMonth(input: {
   if (!reason) {
     throw new DomainError("Explain why this closed month must be reopened.");
   }
-  const { db } = await getDatabaseContext();
+  const { db, paths, raw } = await getDatabaseContext();
+  const currentState = db
+    .select({ status: monthCloseStates.status })
+    .from(monthCloseStates)
+    .where(eq(monthCloseStates.targetMonth, targetMonth))
+    .get();
+  if (currentState?.status !== "closed") {
+    throw new DomainError(`${targetMonth} is not currently closed.`);
+  }
+  await createDatabaseBackup(raw, paths, "pre-reopen");
   return db.transaction(
     (transaction) => {
       const targetState = transaction

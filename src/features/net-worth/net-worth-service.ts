@@ -35,6 +35,7 @@ import {
 } from "@/domain/net-worth";
 import { recordAuditEvent } from "@/features/audit/audit-service";
 import { assertLifecycleChangeOpenInDatabase } from "@/features/month-close/month-lock-service";
+import { createDatabaseBackup } from "@/server/database-backup";
 
 type ManualItemRow = typeof manualItems.$inferSelect;
 type ValuationRow = typeof manualItemValuations.$inferSelect;
@@ -547,7 +548,7 @@ export async function recordManualValuation(input: {
   naturalValueMinor: number;
   sourceNote: string;
 }): Promise<number> {
-  const { db } = await getDatabaseContext();
+  const { db, paths, raw } = await getDatabaseContext();
   const effectiveDate = calendarDateSchema.parse(input.effectiveDate);
   const sourceNote = input.sourceNote.trim();
   if (effectiveDate > getLocalCalendarDate()) {
@@ -555,6 +556,16 @@ export async function recordManualValuation(input: {
   }
   if (!sourceNote) {
     throw new DomainError("Record where this valuation came from.");
+  }
+  const existingOnDate = currentValuations(
+    db
+      .select()
+      .from(manualItemValuations)
+      .where(eq(manualItemValuations.manualItemId, input.manualItemId))
+      .all(),
+  ).some((valuation) => valuation.effectiveDate === effectiveDate);
+  if (existingOnDate) {
+    await createDatabaseBackup(raw, paths, "pre-correction");
   }
   return db.transaction((transaction) => {
     const item = loadActiveManualItem(transaction, input.manualItemId);
@@ -612,7 +623,7 @@ export async function carryForwardManualValuation(input: {
   effectiveDate: string;
   acknowledgment: string;
 }): Promise<number> {
-  const { db } = await getDatabaseContext();
+  const { db, paths, raw } = await getDatabaseContext();
   const effectiveDate = calendarDateSchema.parse(input.effectiveDate);
   const acknowledgment = input.acknowledgment.trim();
   if (effectiveDate > getLocalCalendarDate()) {
@@ -620,6 +631,16 @@ export async function carryForwardManualValuation(input: {
   }
   if (!acknowledgment) {
     throw new DomainError("Explain why the prior value is still appropriate.");
+  }
+  const existingOnDate = currentValuations(
+    db
+      .select()
+      .from(manualItemValuations)
+      .where(eq(manualItemValuations.manualItemId, input.manualItemId))
+      .all(),
+  ).some((valuation) => valuation.effectiveDate === effectiveDate);
+  if (existingOnDate) {
+    await createDatabaseBackup(raw, paths, "pre-correction");
   }
   return db.transaction((transaction) => {
     const item = loadActiveManualItem(transaction, input.manualItemId);

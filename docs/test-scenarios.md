@@ -688,6 +688,44 @@ report or workflow evidence.
 
 ---
 
+## Scenario 18: Verified Backup, Export, and Restore
+
+A workspace contains one account and a balanced opening entry. A manual snapshot is
+created, then a second account is added after the snapshot.
+
+### Expected Backup Behavior
+
+- The snapshot is created with SQLite's online backup API while WAL mode is active.
+- The snapshot passes `quick_check` and `foreign_key_check` before it is retained.
+- Only one automatic daily snapshot is created for a local calendar date.
+- The 14 newest backups remain available, along with one monthly recovery point across
+  the 12 newest represented months.
+- A journal reversal, same-date valuation correction, month reopen, migration, and
+  restore each create their required safety point before changing live history.
+
+### Expected Export Behavior
+
+- The SQLite download begins with a valid SQLite file header and can be returned to the
+  private backup directory for exact restoration.
+- The portable JSON export declares
+  `project-financial-freedom-portable-v1`, reporting currency, migration count, all 19
+  application tables, per-table SHA-256 checksums, and a checksum over the table payload.
+- Both export choices visibly warn that the files contain sensitive financial data.
+
+### Expected Restore Behavior
+
+- The restore preview shows the snapshot timestamp, checksum, currency, account count,
+  import count, journal-entry count, manual-item count, and close-revision count.
+- Restoration requires an acknowledgment, the exact word `RESTORE`, and a final browser
+  confirmation.
+- The selected snapshot is staged and verified before the live database is touched.
+- A pre-restore snapshot preserves the database containing both accounts.
+- After restoration, only the first account remains, the restored database passes all
+  startup health checks, and the restore is recorded in its audit history.
+- If staging or startup verification fails, the original live database remains active.
+
+---
+
 ## Cross-Scenario Acceptance Rules
 
 All scenarios must satisfy:
